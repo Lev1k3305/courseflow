@@ -1,0 +1,6 @@
+{
+  "name": "VK Integrated App",
+  "description": "An application with VK API integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
