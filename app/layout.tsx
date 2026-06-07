@@ -1,8 +1,10 @@
+// @ts-expect-error The global CSS import is handled by Next.js and lacks a local type declaration.
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import { VKBridgeInitializer } from "@/components/VKBridgeInitializer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={inter.className}>
+        <VKBridgeInitializer />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
             <ConditionalLayout>

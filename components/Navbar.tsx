@@ -7,34 +7,46 @@ import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import { signOut } from "firebase/auth";
 import { getAuthService } from "@/lib/firebase";
-import vkBridge from "@vkontakte/vk-bridge";
+import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
 
 export function Navbar() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const { user } = useAuth();
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    async function fetchVkAvatar() {
-      try {
-        const userInfo = await vkBridge.send("VKWebAppGetUserInfo");
-        if (userInfo && userInfo.photo_200) {
-          setAvatarUrl(userInfo.photo_200);
-        }
-      } catch (e) {
-        console.log("No VK Bridge user avatar, fallback to default");
-      }
-    }
-    if (user) {
-      fetchVkAvatar();
-    } else {
+    if (!user) {
       setAvatarUrl(null);
+      return;
     }
+
+    const fetchVkAvatar = async () => {
+      setIsLoadingAvatar(true);
+      try {
+        const userInfo: VKUserInfo | null = await vkBridgeManager.getUserInfo();
+
+        if (userInfo?.photo_200) {
+          setAvatarUrl(userInfo.photo_200);
+          console.log("[Navbar] VK avatar loaded successfully");
+        } else {
+          setAvatarUrl(null);
+          console.log("[Navbar] No VK user info available, using default");
+        }
+      } catch (error) {
+        console.error("[Navbar] Error fetching VK avatar:", error);
+        setAvatarUrl(null);
+      } finally {
+        setIsLoadingAvatar(false);
+      }
+    };
+
+    fetchVkAvatar();
   }, [user]);
 
   if (!mounted) return null;
@@ -61,20 +73,20 @@ export function Navbar() {
               CourseFlow
             </span>
           </Link>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1.5">
             {navLinks}
             {user ? (
               <>
-                <Link href="/profile" className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                  {avatarUrl ? (
+                <Link href="/profile" className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" title="Профиль">
+                  {!isLoadingAvatar && avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover" />
                   ) : (
                     <User size={18} />
                   )}
                 </Link>
-                <button 
+                <button
                   onClick={() => signOut(getAuthService())}
                   className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   title="Выйти"
@@ -90,6 +102,7 @@ export function Navbar() {
             <button
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title={resolvedTheme === "dark" ? "Светлая тема" : "Тёмная тема"}
             >
               {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -116,7 +129,7 @@ export function Navbar() {
           </Link>
 
           <Link href="/profile" className="flex flex-col items-center justify-center gap-1 py-1.5 px-4 rounded-xl text-zinc-600 dark:text-zinc-300 active:scale-90 transition-transform">
-            {avatarUrl ? (
+            {!isLoadingAvatar && avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-zinc-200 dark:border-zinc-800" />
             ) : (
               <User size={20} className="text-zinc-600 dark:text-zinc-300" />
