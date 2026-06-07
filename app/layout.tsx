@@ -1,4 +1,4 @@
-// @ts-expect-error The global CSS import is handled by Next.js and lacks a local type declaration.
+// @ts-ignore
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
