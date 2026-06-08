@@ -5,7 +5,7 @@ import { getAuthService } from "@/lib/firebase";
 import { signInAnonymously } from "firebase/auth";
 import { courses } from "@/lib/data";
 import { Navbar } from "@/components/Navbar";
-import { Bot, Terminal, Code, Smartphone, Sparkles, ArrowRight, Settings, Palette, Monitor, Globe, Layers } from "lucide-react";
+import { Bot, Terminal, Code, Smartphone, Sparkles, ArrowRight, Settings, Palette, Monitor, Globe, Layers, BookOpen, Star, Users, Zap } from "lucide-react";
 import * as motion from "motion/react-client";
 import Link from "next/link";
 
@@ -21,6 +21,14 @@ const iconMapRecord: Record<string, any> = {
   "fullstack-dev": Layers,
 };
 
+const categoryGradients: Record<string, string> = {
+  "all": "from-indigo-600 to-violet-600",
+  "ai": "from-blue-600 to-cyan-600",
+  "programming": "from-emerald-600 to-teal-600",
+  "design": "from-rose-600 to-orange-600",
+  "web": "from-amber-600 to-orange-600",
+};
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState("all");
@@ -33,16 +41,15 @@ export default function Home() {
   if (!mounted) return null;
 
   const categories = [
-    { id: "all", label: "Все" },
-    { id: "ai", label: "ИИ" },
+    { id: "all", label: "Все курсы" },
+    { id: "ai", label: "Искусственный интеллект" },
     { id: "programming", label: "Программирование" },
-    { id: "design", label: "Дизайн" },
+    { id: "design", label: "Дизайн и UX/UI" },
     { id: "web", label: "Веб-разработка" },
   ];
 
   const filteredCourses = category === "all" ? courses : courses.filter((c) => c.category === category);
 
-  // Recommendations: for novices in web-dev, recommend fullstack; for design, web-design.
   const getRecommendation = (courseId: string) => {
     if (courseId === "web-dev") return "Full-stack разработка";
     if (courseId === "graphic-design") return "Веб-дизайн и UX/UI";
@@ -50,63 +57,131 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors">
-
-      <section className="px-6 py-16 text-center">
+    <main className="min-h-screen bg-mesh">
+      {/* Hero Section */}
+      <section className="px-6 pt-20 pb-12 text-center relative overflow-hidden">
         <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="relative z-10"
         >
-            <h2 className="text-5xl md:text-6xl font-extrabold tracking-tighter mb-6 bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-                Освой современный стек.
-            </h2>
-            <p className="text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-10">
-                Практические курсы по ИИ, разработке и анализу данных.
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold mb-6 border border-indigo-200/50 dark:border-indigo-800/50"
+            >
+              <Sparkles size={14} />
+              <span>Платформа №1 для обучения в VK</span>
+            </motion.div>
+
+            <h1 className="text-4xl md:text-7xl font-black tracking-tight mb-6 text-balance leading-tight">
+              Твой путь в <span className={`bg-gradient-to-r ${categoryGradients[category]} bg-clip-text text-transparent transition-all duration-500`}>IT-будущее</span> начинается здесь
+            </h1>
+
+            <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed text-balance">
+              Интерактивные курсы по самым востребованным направлениям. Учись, практикуйся и развивай навыки в формате VK Mini App.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
+            <div className="flex flex-wrap justify-center gap-3 mb-12">
               {categories.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setCategory(c.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all vk-active ${
+                  className={`px-5 py-2.5 rounded-2xl text-sm font-bold transition-all duration-300 vk-active shadow-sm ${
                     category === c.id
-                      ? "bg-indigo-600 text-white"
-                      : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-700"
+                      ? `bg-indigo-600 text-white shadow-indigo-200 dark:shadow-none`
+                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800"
                   }`}
                 >
                   {c.label}
                 </button>
               ))}
             </div>
+
+            <div className="flex flex-wrap justify-center gap-8 text-zinc-500 dark:text-zinc-500 font-medium">
+              <div className="flex items-center gap-2">
+                <Users size={18} />
+                <span>10,000+ студентов</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BookOpen size={18} />
+                <span>50+ уроков</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star size={18} className="text-amber-500 fill-amber-500" />
+                <span>4.9 рейтинг</span>
+              </div>
+            </div>
         </motion.div>
       </section>
 
-      <section id="courses" className="px-6 pb-20">
+      {/* Course Grid */}
+      <section id="courses" className="px-6 pb-20 relative z-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-          {filteredCourses.map((course) => {
+          {filteredCourses.map((course, index) => {
             const IconComponent = iconMapRecord[course.id] || Sparkles;
             const recommendation = getRecommendation(course.id);
             return (
               <motion.div 
                 key={course.id} 
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className={`group border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col hover:border-indigo-200 dark:hover:border-indigo-900 vk-active cursor-pointer ${recommendation ? "relative" : ""}`}
+                transition={{ delay: index * 0.05 }}
+                className={`group glass-card rounded-3xl transition-all duration-300 flex flex-col hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/10 vk-active cursor-pointer ${recommendation ? "relative" : ""}`}
               >
                 {recommendation && (
-                  <div className="absolute -top-3 -right-3 bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                    Рекомендуем: {recommendation}
+                  <div className="absolute -top-3 -right-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg z-20 flex items-center gap-1.5">
+                    <Zap size={10} fill="currentColor" />
+                    Рекомендуем
                   </div>
                 )}
-                <Link href={`/course/${course.id}`} className="p-5 flex flex-col flex-grow">
-                  <div className="mb-6 text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-zinc-800 rounded-2xl w-14 h-14 flex items-center justify-center">
-                    <IconComponent size={28} strokeWidth={1.5} />
+                <Link href={`/course/${course.id}`} className="p-6 flex flex-col h-full">
+                  <div className={`mb-6 p-4 rounded-2xl w-14 h-14 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-inner ${
+                    course.category === "ai" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600" :
+                    course.category === "programming" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" :
+                    course.category === "design" ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600" :
+                    "bg-amber-100 dark:bg-amber-900/30 text-amber-600"
+                  }`}>
+                    <IconComponent size={28} strokeWidth={2} />
                   </div>
-                  <h3 className="text-lg font-bold mb-1 text-zinc-900 dark:text-zinc-100">{course.title}</h3>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 flex-grow leading-relaxed">{course.description}</p>
+
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                      {course.lessons.length} уроков
+                    </span>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={10} className="text-amber-400 fill-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-black mb-3 text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {course.title}
+                  </h3>
+
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed mb-8 flex-grow">
+                    {course.description}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800/50 mt-auto">
+                    <div className="flex -space-x-2">
+                       {[1, 2, 3].map((i) => (
+                         <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                           <img src={`https://i.pravatar.cc/100?img=${i + index * 5}`} alt="User" />
+                         </div>
+                       ))}
+                       <div className="w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[8px] font-bold text-zinc-500">
+                         +12
+                       </div>
+                    </div>
+                    <span className="flex items-center gap-1.5 text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter group-hover:gap-2 transition-all">
+                      Начать обучение <ArrowRight size={14} />
+                    </span>
+                  </div>
                 </Link>
               </motion.div>
             );
