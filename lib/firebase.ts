@@ -40,16 +40,20 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
     },
     operationType,
     path
+  };
+
+  // Log detailed error only in development or to secure server-side logs
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Firestore Error [Internal]:', JSON.stringify(errInfo));
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Security: Don't leak internal paths or user PII (email, etc.) to the client
+  // Fail securely with a generic message and operation context
+  throw new Error(`Database operation failed (${operationType}). Please try again later.`);
 }
 
 export async function saveProgress(courseId: string, lessonId: number) {
