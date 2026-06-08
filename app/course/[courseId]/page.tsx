@@ -6,7 +6,7 @@ import { ArrowLeft, PlayCircle, Lock, CheckCircle2, Clock, BookOpen, GraduationC
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { useEffect, useState } from "react";
-import { getProgress } from "@/lib/firebase";
+import { getCompletedLessonsForCourse } from "@/lib/firebase";
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -17,11 +17,7 @@ export default function CourseDetailsPage() {
   useEffect(() => {
     async function fetchProgress() {
       if (!course) return;
-      const completed = [];
-      for (const lesson of course.lessons) {
-        const isDone = await getProgress(courseId, lesson.id);
-        if (isDone) completed.push(lesson.id);
-      }
+      const completed = await getCompletedLessonsForCourse(courseId);
       setCompletedLessons(completed);
     }
     fetchProgress();

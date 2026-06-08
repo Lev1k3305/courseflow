@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getAuthService } from "@/lib/firebase";
 import { signInAnonymously } from "firebase/auth";
 import { courses } from "@/lib/data";
@@ -29,6 +29,14 @@ const categoryGradients: Record<string, string> = {
   "web": "from-amber-600 to-orange-600",
 };
 
+const categories = [
+  { id: "all", label: "Все курсы" },
+  { id: "ai", label: "Искусственный интеллект" },
+  { id: "programming", label: "Программирование" },
+  { id: "design", label: "Дизайн и UX/UI" },
+  { id: "web", label: "Веб-разработка" },
+];
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState("all");
@@ -40,15 +48,9 @@ export default function Home() {
 
   if (!mounted) return null;
 
-  const categories = [
-    { id: "all", label: "Все курсы" },
-    { id: "ai", label: "Искусственный интеллект" },
-    { id: "programming", label: "Программирование" },
-    { id: "design", label: "Дизайн и UX/UI" },
-    { id: "web", label: "Веб-разработка" },
-  ];
-
-  const filteredCourses = category === "all" ? courses : courses.filter((c) => c.category === category);
+  const filteredCourses = useMemo(() =>
+    category === "all" ? courses : courses.filter((c) => c.category === category)
+  , [category]);
 
   const getRecommendation = (courseId: string) => {
     if (courseId === "web-dev") return "Full-stack разработка";
