@@ -80,20 +80,43 @@ export async function getProgress(courseId: string, lessonId: number) {
   }
 }
 
+/**
+ * Fetches all completed lesson IDs for a specific course in a single query.
+ * Optimized to avoid N+1 queries.
+ */
+export async function getCompletedLessonsForCourse(courseId: string): Promise<number[]> {
+  const db = getDbService();
+  const auth = getAuthService();
+  if (!auth.currentUser) return [];
+  const path = `userProgress/${auth.currentUser.uid}/courses/${courseId}/lessons`;
+  try {
+    const lessonsRef = collection(db, path);
+    const snapshot = await getDocs(lessonsRef);
+    return snapshot.docs.map(doc => parseInt(doc.id));
+  } catch (error) {
+    console.error('Error fetching completed lessons for course', courseId, error);
+    return [];
+  }
+}
+
 export async function getAllCompletedLessons(coursesList: { id: string }[]) {
   const db = getDbService();
   const auth = getAuthService();
   if (!auth.currentUser) return 0;
-  let count = 0;
-  for (const course of coursesList) {
-    const path = `userProgress/${auth.currentUser.uid}/courses/${course.id}/lessons`;
-    try {
-      const lessonsRef = collection(db, path);
-      const snapshot = await getDocs(lessonsRef);
-      count += snapshot.size;
-    } catch (error) {
-      console.error('Error fetching progress for course', course.id, error);
-    }
-  }
-  return count;
+
+  const results = await Promise.all(
+    coursesList.map(async (course) => {
+      const path = `userProgress/${auth.currentUser!.uid}/courses/${course.id}/lessons`;
+      try {
+        const lessonsRef = collection(db, path);
+        const snapshot = await getDocs(lessonsRef);
+        return snapshot.size;
+      } catch (error) {
+        console.error('Error fetching progress for course', course.id, error);
+        return 0;
+      }
+    })
+  );
+
+  return results.reduce((acc, current) => acc + current, 0);
 }
