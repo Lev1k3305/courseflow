@@ -46,11 +46,11 @@ export default function Home() {
     signInAnonymously(getAuthService()).catch((error) => console.error("Auth error:", error));
   }, []);
 
-  if (!mounted) return null;
-
   const filteredCourses = useMemo(() =>
     category === "all" ? courses : courses.filter((c) => c.category === category)
   , [category]);
+
+  if (!mounted) return null;
 
   const getRecommendation = (courseId: string) => {
     if (courseId === "web-dev") return "Full-stack разработка";
@@ -173,7 +173,15 @@ export default function Home() {
                     <div className="flex -space-x-2">
                        {[1, 2, 3].map((i) => (
                          <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                           <img src={`https://i.pravatar.cc/100?img=${i + index * 5}`} alt="User" />
+                           {/* Performance: Added explicit dimensions and lazy loading to prevent CLS and improve LCP */}
+                           <img
+                              src={`https://i.pravatar.cc/100?img=${i + index * 5}`}
+                              alt="User"
+                              width="28"
+                              height="28"
+                              loading="lazy"
+                              className="w-full h-full object-cover"
+                           />
                          </div>
                        ))}
                        <div className="w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[8px] font-bold text-zinc-500">

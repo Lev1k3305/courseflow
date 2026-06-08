@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, getCountFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 let app: any;
@@ -103,6 +103,10 @@ export async function getCompletedLessonsForCourse(courseId: string): Promise<nu
   }
 }
 
+/**
+ * Fetches the total count of completed lessons across all courses.
+ * Optimized to use getCountFromServer to reduce network payload and Firestore read costs.
+ */
 export async function getAllCompletedLessons(coursesList: { id: string }[]) {
   const db = getDbService();
   const auth = getAuthService();
@@ -113,8 +117,9 @@ export async function getAllCompletedLessons(coursesList: { id: string }[]) {
       const path = `userProgress/${auth.currentUser!.uid}/courses/${course.id}/lessons`;
       try {
         const lessonsRef = collection(db, path);
-        const snapshot = await getDocs(lessonsRef);
-        return snapshot.size;
+        // Using getCountFromServer is faster and cheaper than getDocs for large collections
+        const snapshot = await getCountFromServer(lessonsRef);
+        return snapshot.data().count;
       } catch (error) {
         console.error('Error fetching progress for course', course.id, error);
         return 0;
