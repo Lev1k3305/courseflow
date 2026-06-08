@@ -7,6 +7,30 @@ let app: any;
 let db: any;
 let auth: any;
 
+/**
+ * In-memory cache for course progress to avoid redundant Firestore requests.
+ * Scoped by user ID to prevent data leakage between sessions.
+ * Format: { userId: { courseId: [completedLessonId1, completedLessonId2, ...] } }
+ */
+const userCourseProgressCache: Record<string, Record<string, number[]>> = {};
+
+/**
+ * Helper to get or initialize the cache for a specific user and course.
+ */
+function getCache(userId: string, courseId: string): number[] | undefined {
+  return userCourseProgressCache[userId]?.[courseId];
+}
+
+/**
+ * Helper to set or update the cache for a specific user and course.
+ */
+function setCache(userId: string, courseId: string, completedIds: number[]) {
+  if (!userCourseProgressCache[userId]) {
+    userCourseProgressCache[userId] = {};
+  }
+  userCourseProgressCache[userId][courseId] = completedIds;
+}
+
 function initFirebase() {
   if (!app) {
     app = initializeApp(firebaseConfig);
@@ -60,24 +84,56 @@ export async function saveProgress(courseId: string, lessonId: number) {
   const db = getDbService();
   const auth = getAuthService();
   if (!auth.currentUser) return;
-  const path = `userProgress/${auth.currentUser.uid}/courses/${courseId}/lessons/${lessonId.toString()}`;
+  const userId = auth.currentUser.uid;
+  const path = `userProgress/${userId}/courses/${courseId}/lessons/${lessonId.toString()}`;
   const progressRef = doc(db, path);
   try {
     await setDoc(progressRef, { completed: true, timestamp: new Date() });
+
+    // Update user-scoped cache
+    const currentCache = getCache(userId, courseId);
+    if (currentCache) {
+      if (!currentCache.includes(lessonId)) {
+        currentCache.push(lessonId);
+      }
+    } else {
+      setCache(userId, courseId, [lessonId]);
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 export async function getProgress(courseId: string, lessonId: number) {
-  const db = getDbService();
   const auth = getAuthService();
   if (!auth.currentUser) return false;
-  const path = `userProgress/${auth.currentUser.uid}/courses/${courseId}/lessons/${lessonId.toString()}`;
+  const userId = auth.currentUser.uid;
+
+  // Check user-scoped cache first
+  if (getCache(userId, courseId)?.includes(lessonId)) {
+    return true;
+  }
+
+  const db = getDbService();
+  const path = `userProgress/${userId}/courses/${courseId}/lessons/${lessonId.toString()}`;
   const progressRef = doc(db, path);
   try {
     const docSnap = await getDoc(progressRef);
-    return docSnap.exists();
+    const exists = docSnap.exists();
+
+    // If it exists, update user-scoped cache
+    if (exists) {
+      const currentCache = getCache(userId, courseId);
+      if (currentCache) {
+        if (!currentCache.includes(lessonId)) {
+          currentCache.push(lessonId);
+        }
+      } else {
+        setCache(userId, courseId, [lessonId]);
+      }
+    }
+
+    return exists;
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
     return false;
@@ -86,41 +142,44 @@ export async function getProgress(courseId: string, lessonId: number) {
 
 /**
  * Fetches all completed lesson IDs for a specific course in a single query.
- * Optimized to avoid N+1 queries.
+ * Optimized with user-scoped in-memory caching to avoid redundant Firestore requests.
  */
 export async function getCompletedLessonsForCourse(courseId: string): Promise<number[]> {
-  const db = getDbService();
   const auth = getAuthService();
   if (!auth.currentUser) return [];
-  const path = `userProgress/${auth.currentUser.uid}/courses/${courseId}/lessons`;
+  const userId = auth.currentUser.uid;
+
+  // Return from user-scoped cache if available
+  const cached = getCache(userId, courseId);
+  if (cached) {
+    return cached;
+  }
+
+  const db = getDbService();
+  const path = `userProgress/${userId}/courses/${courseId}/lessons`;
   try {
     const lessonsRef = collection(db, path);
     const snapshot = await getDocs(lessonsRef);
-    return snapshot.docs.map(doc => parseInt(doc.id));
+    const completedIds = snapshot.docs.map(doc => parseInt(doc.id));
+
+    // Populate user-scoped cache
+    setCache(userId, courseId, completedIds);
+
+    return completedIds;
   } catch (error) {
     console.error('Error fetching completed lessons for course', courseId, error);
     return [];
   }
 }
 
+/**
+ * Calculates total completed lessons across all courses.
+ * Optimized to use the caching layer.
+ */
 export async function getAllCompletedLessons(coursesList: { id: string }[]) {
-  const db = getDbService();
-  const auth = getAuthService();
-  if (!auth.currentUser) return 0;
-
   const results = await Promise.all(
-    coursesList.map(async (course) => {
-      const path = `userProgress/${auth.currentUser!.uid}/courses/${course.id}/lessons`;
-      try {
-        const lessonsRef = collection(db, path);
-        const snapshot = await getDocs(lessonsRef);
-        return snapshot.size;
-      } catch (error) {
-        console.error('Error fetching progress for course', course.id, error);
-        return 0;
-      }
-    })
+    coursesList.map((course) => getCompletedLessonsForCourse(course.id))
   );
 
-  return results.reduce((acc, current) => acc + current, 0);
+  return results.reduce((acc, current) => acc + current.length, 0);
 }
