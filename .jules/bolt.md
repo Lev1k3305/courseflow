@@ -10,3 +10,8 @@
 **Learning:** VK Bridge calls (like `VKWebAppGetUserInfo`) are asynchronous IPC operations between the webview and the mobile client. Making multiple identical requests from different components (e.g., Navbar and Profile) adds unnecessary overhead and can cause race conditions or UI flickers.
 
 **Action:** Cache the result of singleton-like VK Bridge requests using a shared promise within the manager. This ensures that concurrent or sequential calls resolve instantly with the same data without re-triggering the bridge.
+
+## 2026-06-08 - User-scoped In-memory Caching for Progress
+**Learning:** Global in-memory caches in client-side apps can leak data between user sessions if not properly scoped. For example, a cache keyed only by `courseId` would persist across logout/login events in a SPA, potentially showing one user's progress to another.
+
+**Action:** Always scope session-based caches by the authenticated user's ID (e.g., `{ userId: { resourceId: data } }`). This ensures data isolation and correctness when the app handles multiple identities within the same browser lifetime.

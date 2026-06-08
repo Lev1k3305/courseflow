@@ -37,6 +37,15 @@ const categories = [
   { id: "web", label: "Веб-разработка" },
 ];
 
+const ratingStars = [1, 2, 3, 4, 5];
+const avatarIndices = [1, 2, 3];
+
+const getRecommendation = (courseId: string) => {
+  if (courseId === "web-dev") return "Full-stack разработка";
+  if (courseId === "graphic-design") return "Веб-дизайн и UX/UI";
+  return null;
+};
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState("all");
@@ -51,12 +60,6 @@ export default function Home() {
   const filteredCourses = useMemo(() =>
     category === "all" ? courses : courses.filter((c) => c.category === category)
   , [category]);
-
-  const getRecommendation = (courseId: string) => {
-    if (courseId === "web-dev") return "Full-stack разработка";
-    if (courseId === "graphic-design") return "Веб-дизайн и UX/UI";
-    return null;
-  };
 
   return (
     <main className="min-h-screen bg-mesh">
@@ -155,7 +158,7 @@ export default function Home() {
                       {course.lessons.length} уроков
                     </span>
                     <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
+                      {ratingStars.map((s) => (
                         <Star key={s} size={10} className="text-amber-400 fill-amber-400" />
                       ))}
                     </div>
@@ -171,9 +174,9 @@ export default function Home() {
 
                   <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800/50 mt-auto">
                     <div className="flex -space-x-2">
-                       {[1, 2, 3].map((i) => (
+                       {avatarIndices.map((i) => (
                          <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                           <img src={`https://i.pravatar.cc/100?img=${i + index * 5}`} alt="User" />
+                           <img src={`https://i.pravatar.cc/100?img=${i + index * 5}`} alt="User" loading="lazy" />
                          </div>
                        ))}
                        <div className="w-7 h-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[8px] font-bold text-zinc-500">
