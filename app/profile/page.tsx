@@ -100,7 +100,7 @@ export default function ProfilePage() {
           <>
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 mb-8 flex flex-col sm:flex-row items-center gap-6">
               <div className="relative group">
-                <img src={avatarUrl} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-indigo-50 dark:border-zinc-700 shadow-inner bg-zinc-100 dark:bg-zinc-800" />
+                <img src={avatarUrl} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-indigo-50 dark:border-zinc-700 shadow-inner bg-zinc-100 dark:bg-zinc-800" width={96} height={96} />
                 <input
                   type="text"
                   value={avatarUrl}

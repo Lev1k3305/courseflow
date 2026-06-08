@@ -81,7 +81,7 @@ export function Navbar() {
               <>
                 <Link href="/profile" className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" title="Профиль">
                   {!isLoadingAvatar && avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover" />
+                    <img src={avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover" width={20} height={20} />
                   ) : (
                     <User size={18} />
                   )}
@@ -130,7 +130,7 @@ export function Navbar() {
 
           <Link href="/profile" className="flex flex-col items-center justify-center gap-1 py-1.5 px-4 rounded-xl text-zinc-600 dark:text-zinc-300 active:scale-90 transition-transform">
             {!isLoadingAvatar && avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-zinc-200 dark:border-zinc-800" />
+              <img src={avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-zinc-200 dark:border-zinc-800" width={20} height={20} />
             ) : (
               <User size={20} className="text-zinc-600 dark:text-zinc-300" />
             )}

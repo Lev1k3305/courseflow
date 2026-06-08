@@ -15,3 +15,11 @@
 **Learning:** Global in-memory caches in client-side apps can leak data between user sessions if not properly scoped. For example, a cache keyed only by `courseId` would persist across logout/login events in a SPA, potentially showing one user's progress to another.
 
 **Action:** Always scope session-based caches by the authenticated user's ID (e.g., `{ userId: { resourceId: data } }`). This ensures data isolation and correctness when the app handles multiple identities within the same browser lifetime.
+
+## 2025-05-16 - Deterministic Asset Seeds and Component Memoization
+**Learning:** Using array indices as seeds for external assets (like random avatars) in a list causes redundant network requests and UI flickers when the list is filtered or reordered, as the seeds for same items change. Also, large lists in the home page re-render unnecessarily on every state change (e.g., category switch).
+
+**Action:**
+1. Use a deterministic hash of a stable identifier (e.g., `courseId`) for asset seeds to ensure URL stability and improve browser caching.
+2. Extract list items into memoized components (`React.memo`) to skip re-rendering when props haven't changed.
+3. Always provide explicit `width` and `height` to images to prevent layout shifts (CLS).
