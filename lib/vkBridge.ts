@@ -22,6 +22,7 @@ interface VKUserInfo {
 class VKBridgeManager {
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
+  private userInfoPromise: Promise<VKUserInfo | null> | null = null;
   private config: Required<VKBridgeConfig>;
 
   constructor(config: VKBridgeConfig = {}) {
@@ -124,29 +125,40 @@ class VKBridgeManager {
   }
 
   /**
-   * Get user info with error handling
+   * Get user info with error handling and caching
    */
   async getUserInfo(): Promise<VKUserInfo | null> {
-    try {
-      if (!this.isVKBridgeAvailable()) {
-        this.log('VK Bridge not available for getUserInfo');
+    if (this.userInfoPromise) {
+      this.log('Returning cached user info promise');
+      return this.userInfoPromise;
+    }
+
+    this.userInfoPromise = (async () => {
+      try {
+        if (!this.isVKBridgeAvailable()) {
+          this.log('VK Bridge not available for getUserInfo');
+          return null;
+        }
+
+        this.log('Fetching VK user info');
+        const userInfo = await bridge.send('VKWebAppGetUserInfo');
+
+        this.log('User info fetched successfully', {
+          id: userInfo?.id,
+          first_name: userInfo?.first_name,
+          last_name: userInfo?.last_name,
+        });
+
+        return userInfo || null;
+      } catch (error) {
+        this.logError('Failed to get user info:', error);
+        // Reset promise on error to allow retry
+        this.userInfoPromise = null;
         return null;
       }
+    })();
 
-      this.log('Fetching VK user info');
-      const userInfo = await bridge.send('VKWebAppGetUserInfo');
-
-      this.log('User info fetched successfully', {
-        id: userInfo?.id,
-        first_name: userInfo?.first_name,
-        last_name: userInfo?.last_name,
-      });
-
-      return userInfo || null;
-    } catch (error) {
-      this.logError('Failed to get user info:', error);
-      return null;
-    }
+    return this.userInfoPromise;
   }
 
   /**
