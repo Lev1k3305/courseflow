@@ -15,3 +15,8 @@
 **Learning:** Global in-memory caches in client-side apps can leak data between user sessions if not properly scoped. For example, a cache keyed only by `courseId` would persist across logout/login events in a SPA, potentially showing one user's progress to another.
 
 **Action:** Always scope session-based caches by the authenticated user's ID (e.g., `{ userId: { resourceId: data } }`). This ensures data isolation and correctness when the app handles multiple identities within the same browser lifetime.
+
+## 2026-06-09 - Stable Identity for Dynamic External Assets
+**Learning:** Using unstable identifiers (like array indices) as seeds for dynamic external assets (e.g., `pravatar.cc`) causes a significant performance and UX anti-pattern. When the list is filtered or re-ordered, the same logical item gets a different seed, forcing the browser to perform redundant network requests and causing visible UI flickering.
+
+**Action:** Generate deterministic hashes from stable resource identifiers (like `courseId`) to use as seeds. This ensures asset stability across re-renders, improves caching efficiency, and eliminates flickering. Additionally, extracting list items into `React.memo` components further optimizes the reconciliation process when parent state changes.
