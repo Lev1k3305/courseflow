@@ -2,11 +2,59 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { courses } from "@/lib/data";
+import { memo } from "react";
+import { coursesMap, lessonsMap, Lesson } from "@/lib/data";
 import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
 import * as motion from "motion/react-client";
+
+/**
+ * Memoized Header component to prevent re-renders when typing in notes/tasks.
+ */
+const LessonHeader = memo(({ lessonId, courseTitle, lessonTitle }: { lessonId: number, courseTitle?: string, lessonTitle: string }) => (
+  <header className="mb-12">
+    <div className="flex items-center gap-2 mb-3">
+      <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs">
+        {lessonId}
+      </span>
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Урок курса {courseTitle}</span>
+    </div>
+    <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight">{lessonTitle}</h1>
+  </header>
+));
+LessonHeader.displayName = "LessonHeader";
+
+/**
+ * Memoized Content component to prevent re-renders of heavy prose when state changes elsewhere.
+ */
+const LessonContent = memo(({ sections }: { sections?: Lesson['sections'] }) => (
+  <div className="prose prose-zinc dark:prose-invert max-w-none mb-12">
+    <div className="space-y-10">
+      {sections?.map((section, idx) => (
+        <motion.section
+          key={idx}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: idx * 0.1 }}
+          className="group relative"
+        >
+          <div className="flex items-start gap-4">
+            <div className="mt-1.5 hidden sm:flex shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-zinc-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
+              <BookOpen size={16} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black mb-4 text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{section.title}</h3>
+              <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-lg whitespace-pre-line">{section.content}</p>
+            </div>
+          </div>
+        </motion.section>
+      ))}
+    </div>
+  </div>
+));
+LessonContent.displayName = "LessonContent";
 
 export default function LessonPage() {
   const params = useParams();
@@ -14,9 +62,9 @@ export default function LessonPage() {
   const courseId = params.courseId as string;
   const lessonId = parseInt(params.lessonId as string);
   
-  const course = courses.find((c) => c.id === courseId);
-  const lesson = course?.lessons.find((l) => l.id === lessonId);
-  const nextLesson = course?.lessons.find((l) => l.id === lessonId + 1);
+  const course = coursesMap[courseId];
+  const lesson = lessonsMap[courseId]?.[lessonId];
+  const nextLesson = lessonsMap[courseId]?.[lessonId + 1];
 
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [answerText, setAnswerText] = useState("");
@@ -63,9 +111,17 @@ export default function LessonPage() {
   if (!mounted) return null;
 
   const handleComplete = async () => {
-    await saveProgress(courseId, lessonId);
+    // Optimistic UI update
     setCompleted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      await saveProgress(courseId, lessonId);
+    } catch (error) {
+      // Revert on failure
+      setCompleted(false);
+      console.error("Failed to save progress:", error);
+    }
   };
 
   if (!lesson) {
@@ -128,40 +184,13 @@ export default function LessonPage() {
           </motion.div>
         )}
         
-        <header className="mb-12">
-           <div className="flex items-center gap-2 mb-3">
-              <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs">
-                {lesson.id}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Урок курса {course?.title}</span>
-           </div>
-           <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight">{lesson.title}</h1>
-        </header>
+        <LessonHeader
+          lessonId={lesson.id}
+          courseTitle={course?.title}
+          lessonTitle={lesson.title}
+        />
         
-        <div className="prose prose-zinc dark:prose-invert max-w-none mb-12">
-          <div className="space-y-10">
-            {lesson.sections?.map((section, idx) => (
-              <motion.section
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="group relative"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="mt-1.5 hidden sm:flex shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-zinc-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
-                    <BookOpen size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black mb-4 text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{section.title}</h3>
-                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-lg whitespace-pre-line">{section.content}</p>
-                  </div>
-                </div>
-              </motion.section>
-            ))}
-          </div>
-        </div>
+        <LessonContent sections={lesson.sections} />
 
         {/* Notes Section */}
         <motion.div

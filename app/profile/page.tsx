@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
-import { courses } from "@/lib/data";
+import { courses, coursesMap, lessonsMap } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
@@ -238,8 +238,9 @@ export default function ProfilePage() {
               ) : (
                 <div className="grid gap-4">
                   {notes.map((note) => {
-                    const course = courses.find(c => c.id === note.courseId);
-                    const lesson = course?.lessons.find(l => l.id === note.lessonId);
+                    // Performance optimization: Using O(1) map lookups instead of O(N) .find()
+                    const course = coursesMap[note.courseId];
+                    const lesson = lessonsMap[note.courseId]?.[note.lessonId];
 
                     return (
                       <Link

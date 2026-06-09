@@ -1,17 +1,17 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { courses } from "@/lib/data";
+import { coursesMap } from "@/lib/data";
 import { ArrowLeft, PlayCircle, Lock, CheckCircle2, Clock, BookOpen, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import * as motion from "motion/react-client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getCompletedLessonsForCourse } from "@/lib/firebase";
 
 export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  const course = courses.find((c) => c.id === courseId);
+  const course = coursesMap[courseId];
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
 
   useEffect(() => {
@@ -32,6 +32,12 @@ export default function CourseDetailsPage() {
   }
 
   const progressPercent = Math.round((completedLessons.length / course.lessons.length) * 100);
+
+  /**
+   * Performance optimization: Convert completedLessons array to a Set for O(1) lookups
+   * during the lesson list rendering loop.
+   */
+  const completedSet = useMemo(() => new Set(completedLessons), [completedLessons]);
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors">
@@ -99,8 +105,8 @@ export default function CourseDetailsPage() {
           <div className="absolute left-[23px] top-6 bottom-6 w-0.5 bg-zinc-200 dark:bg-zinc-800 z-0 hidden sm:block" />
 
           {course.lessons.map((lesson, idx) => {
-            const isCompleted = completedLessons.includes(lesson.id);
-            const isNextToComplete = idx === 0 || completedLessons.includes(course.lessons[idx-1]?.id);
+            const isCompleted = completedSet.has(lesson.id);
+            const isNextToComplete = idx === 0 || completedSet.has(course.lessons[idx-1]?.id);
 
             return (
               <motion.div
