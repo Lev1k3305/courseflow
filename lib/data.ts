@@ -1315,3 +1315,20 @@ export const courses: Course[] = [
     ],
   },
 ];
+
+/**
+ * Pre-computed maps for O(1) lookups of courses and lessons by their IDs.
+ * Used to optimize list rendering and page lookups across the application.
+ */
+export const coursesMap: Record<string, Course> = courses.reduce((acc, course) => {
+  acc[course.id] = course;
+  return acc;
+}, {} as Record<string, Course>);
+
+export const lessonsMap: Record<string, Record<number, Lesson>> = courses.reduce((acc, course) => {
+  acc[course.id] = course.lessons.reduce((lAcc, lesson) => {
+    lAcc[lesson.id] = lesson;
+    return lAcc;
+  }, {} as Record<number, Lesson>);
+  return acc;
+}, {} as Record<string, Record<number, Lesson>>);

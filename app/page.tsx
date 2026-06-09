@@ -59,27 +59,21 @@ const getCourseSeed = (courseId: string) => {
   return Math.abs(hash);
 };
 
-interface CourseCardProps {
-  course: Course;
-  index: number;
-}
-
 /**
  * Memoized Course Card component to prevent unnecessary re-renders when filtering categories.
  * Optimized with stable image seeds and explicit dimensions to improve LCP/CLS.
+ *
+ * Performance: motion.div was moved to the parent to ensure this component's
+ * memoization remains stable even if its index in the filtered list changes.
  */
-const CourseCard = memo(({ course, index }: CourseCardProps) => {
+const CourseCard = memo(({ course }: { course: Course }) => {
   const IconComponent = iconMapRecord[course.id] || Sparkles;
   const recommendation = getRecommendation(course.id);
   const stableSeed = getCourseSeed(course.id);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.05 }}
-      className={`group glass-card rounded-3xl transition-all duration-300 flex flex-col hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/10 vk-active cursor-pointer ${recommendation ? "relative" : ""}`}
+    <div
+      className={`h-full group glass-card rounded-3xl transition-all duration-300 flex flex-col hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/10 vk-active cursor-pointer ${recommendation ? "relative" : ""}`}
     >
       {recommendation && (
         <div className="absolute -top-3 -right-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg z-20 flex items-center gap-1.5">
@@ -143,7 +137,7 @@ const CourseCard = memo(({ course, index }: CourseCardProps) => {
           </span>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 });
 
@@ -229,7 +223,15 @@ export default function Home() {
       <section id="courses" className="px-6 pb-20 relative z-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           {filteredCourses.map((course, index) => (
-            <CourseCard key={course.id} course={course} index={index} />
+            <motion.div
+              key={course.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <CourseCard course={course} />
+            </motion.div>
           ))}
         </div>
       </section>
