@@ -27,10 +27,12 @@ export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<number | null>(null);
   const [notes, setNotes] = useState<{ id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[]>([]);
 
   useEffect(() => {
     setMounted(true);
+    setUserId(Math.floor(Math.random() * 900000) + 100000);
 
     const initializeProfile = async () => {
       try {
@@ -94,11 +96,20 @@ export default function ProfilePage() {
 
   if (!mounted) return null;
 
+  const noteColors = [
+    'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
+    'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
+    'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/50',
+    'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
+    'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
+  ];
+
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 relative overflow-hidden">
       {/* Background blobs */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:32px_32px] opacity-20 -z-20" />
 
       <div className="max-w-4xl mx-auto">
         <Link href="/" className="inline-flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-8 hover:text-indigo-600 transition-all font-bold text-sm uppercase tracking-widest vk-active">
@@ -114,25 +125,40 @@ export default function ProfilePage() {
           <div className="space-y-8">
             {/* Premium Profile Header */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-card rounded-[3rem] p-8 md:p-12 relative overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative rounded-[3rem] p-8 md:p-16 overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-2xl"
             >
-              <div className="absolute top-0 right-0 p-8">
-                <GraduationCap className="text-indigo-500/20 w-32 h-32 rotate-12" />
-              </div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl -ml-32 -mb-32" />
 
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="relative mb-6">
-                  <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full blur opacity-40 animate-pulse" />
-                  <img src={avatarUrl} alt="Avatar" className="relative w-32 h-32 rounded-full border-4 border-white dark:border-zinc-800 shadow-2xl object-cover" />
+              <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                <div className="relative shrink-0">
+                  <div className="absolute -inset-4 bg-white/10 dark:bg-zinc-900/5 rounded-full blur-2xl" />
+                  <div className="relative">
+                    <img src={avatarUrl} alt="Avatar" className="w-40 h-40 rounded-[2.5rem] border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover rotate-3 hover:rotate-0 transition-transform duration-500" />
+                    <div className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-3 rounded-2xl shadow-xl">
+                      <Trophy size={20} />
+                    </div>
+                  </div>
                 </div>
 
-                <h1 className="text-4xl md:text-5xl font-black text-zinc-900 dark:text-white mb-2">
-                  {firstName} {lastName}
-                </h1>
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-black uppercase tracking-widest">
-                  <Trophy size={14} /> Студент платформы
+                <div className="text-center md:text-left space-y-4">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2 block">Личный кабинет</span>
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none">
+                      {firstName}<br />{lastName}
+                    </h1>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                    <div className="px-4 py-2 bg-white/10 dark:bg-zinc-900/5 backdrop-blur-md rounded-xl text-xs font-bold border border-white/10 dark:border-zinc-900/10">
+                      ID: {userId || "------"}
+                    </div>
+                    <div className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20">
+                      Pro Аккаунт
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -232,40 +258,58 @@ export default function ProfilePage() {
               </div>
 
               {notes.length === 0 ? (
-                <div className="glass-card p-12 rounded-[3rem] text-center">
+                <div className="glass-card p-12 rounded-[3rem] text-center border-dashed border-2">
+                  <NotebookPen className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
                   <p className="text-zinc-500 font-bold">У тебя пока нет конспектов. Начни учиться и записывать важное!</p>
                 </div>
               ) : (
-                <div className="grid gap-4">
-                  {notes.map((note) => {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {notes.map((note, idx) => {
                     const course = courses.find(c => c.id === note.courseId);
                     const lesson = course?.lessons.find(l => l.id === note.lessonId);
+                    const colorClass = noteColors[idx % noteColors.length];
 
                     return (
-                      <Link
+                      <motion.div
                         key={note.id}
-                        href={`/course/${note.courseId}/lesson/${note.lessonId}`}
-                        className="glass-card p-6 rounded-[2rem] hover:border-indigo-500/50 transition-all group flex items-start justify-between"
+                        initial={{ opacity: 0, rotate: idx % 2 === 0 ? -1 : 1 }}
+                        whileInView={{ opacity: 1, rotate: idx % 2 === 0 ? -2 : 2 }}
+                        whileHover={{ rotate: 0, scale: 1.02, zIndex: 20 }}
+                        className={`p-8 rounded-[2.5rem] border-2 shadow-xl shadow-black/5 transition-all cursor-pointer relative group ${colorClass}`}
                       >
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">
-                              {course?.title}
-                            </span>
-                            <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                              Урок {note.lessonId}
-                            </span>
+                        {/* Tape decoration */}
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/40 dark:bg-black/20 backdrop-blur-sm border border-white/20 dark:border-black/10 rotate-1 z-10" />
+
+                        <Link href={`/course/${note.courseId}/lesson/${note.lessonId}`} className="block h-full">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                                {course?.title}
+                              </span>
+                              <div className="w-8 h-8 rounded-full bg-white/50 dark:bg-black/20 flex items-center justify-center">
+                                <ChevronRight size={16} className="opacity-60" />
+                              </div>
+                            </div>
+
+                            <h4 className="font-black text-xl leading-tight">
+                              {lesson?.title}
+                            </h4>
+
+                            <p className="text-sm font-medium opacity-70 line-clamp-4 leading-relaxed whitespace-pre-line">
+                              {note.content}
+                            </p>
+
+                            <div className="pt-4 flex items-center justify-between border-t border-black/5 dark:border-white/5">
+                              <span className="text-[9px] font-black uppercase tracking-tighter opacity-40">
+                                Урок {note.lessonId}
+                              </span>
+                              <span className="text-[9px] font-black uppercase tracking-tighter opacity-40">
+                                {new Date(note.updatedAt?.seconds * 1000).toLocaleDateString() || 'Недавно'}
+                              </span>
+                            </div>
                           </div>
-                          <h4 className="font-black text-lg group-hover:text-indigo-500 transition-colors">
-                            {lesson?.title}
-                          </h4>
-                          <p className="text-zinc-500 line-clamp-2 text-sm leading-relaxed">
-                            {note.content}
-                          </p>
-                        </div>
-                        <ChevronRight className="text-zinc-300 group-hover:text-indigo-500 transition-colors shrink-0 mt-1" />
-                      </Link>
+                        </Link>
+                      </motion.div>
                     );
                   })}
                 </div>
