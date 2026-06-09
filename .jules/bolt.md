@@ -20,3 +20,12 @@
 **Learning:** Using unstable identifiers (like array indices) as seeds for dynamic external assets (e.g., `pravatar.cc`) causes a significant performance and UX anti-pattern. When the list is filtered or re-ordered, the same logical item gets a different seed, forcing the browser to perform redundant network requests and causing visible UI flickering.
 
 **Action:** Generate deterministic hashes from stable resource identifiers (like `courseId`) to use as seeds. This ensures asset stability across re-renders, improves caching efficiency, and eliminates flickering. Additionally, extracting list items into `React.memo` components further optimizes the reconciliation process when parent state changes.
+
+## 2026-06-10 - Firestore Request Deduplication and Optimistic UI
+**Learning:** Concurrent React component mounts can trigger redundant Firestore requests for the same data (e.g., course progress). Caching only the *result* is insufficient for overlapping requests. Additionally, waiting for network confirmation before updating the UI creates a sluggish user experience.
+
+**Action:**
+1. Implement an in-flight promise registry to deduplicate concurrent requests for the same resource.
+2. Distinguish between partial and complete cache states to avoid serving incomplete data from early lesson checks.
+3. Use optimistic updates with rollbacks to ensure the UI feels instant while maintaining eventual consistency with the database.
+4. When typing registries in TypeScript, use `Promise<T> | undefined` to avoid "condition will always return true" build errors.
