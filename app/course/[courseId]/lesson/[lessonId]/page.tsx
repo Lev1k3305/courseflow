@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { courses } from "@/lib/data";
-import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { saveProgress, getProgress } from "@/lib/firebase";
+import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
 import * as motion from "motion/react-client";
 
 export default function LessonPage() {
@@ -23,6 +23,9 @@ export default function LessonPage() {
   const [completed, setCompleted] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const [noteText, setNoteText] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
   useEffect(() => {
     setMounted(true);
     async function checkProgress() {
@@ -30,8 +33,32 @@ export default function LessonPage() {
         setCompleted(true);
       }
     }
+    async function loadNote() {
+      const savedNote = await getNote(courseId, lessonId);
+      setNoteText(savedNote);
+    }
     checkProgress();
+    loadNote();
   }, [courseId, lessonId]);
+
+  // Debounced auto-save for notes
+  useEffect(() => {
+    if (!mounted) return;
+
+    const timeoutId = setTimeout(async () => {
+      if (noteText.trim()) {
+        setIsSavingNote(true);
+        try {
+          // lessonId is already parsed as number at the top of the component
+          await saveNote(courseId, lessonId, noteText);
+        } finally {
+          setIsSavingNote(false);
+        }
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [noteText, courseId, lessonId, mounted]);
 
   if (!mounted) return null;
 
@@ -111,7 +138,7 @@ export default function LessonPage() {
            <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight">{lesson.title}</h1>
         </header>
         
-        <div className="prose prose-zinc dark:prose-invert max-w-none mb-16">
+        <div className="prose prose-zinc dark:prose-invert max-w-none mb-12">
           <div className="space-y-10">
             {lesson.sections?.map((section, idx) => (
               <motion.section
@@ -135,6 +162,40 @@ export default function LessonPage() {
             ))}
           </div>
         </div>
+
+        {/* Notes Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <PenLine className="text-indigo-500" size={24} />
+              <h3 className="font-black text-2xl text-zinc-900 dark:text-white">Конспект</h3>
+            </div>
+            {isSavingNote && (
+              <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                <Loader2 size={14} className="animate-spin" /> Сохранение...
+              </div>
+            )}
+            {!isSavingNote && noteText && (
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-widest">
+                <Save size={14} /> Сохранено
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card p-1 rounded-[2rem] overflow-hidden">
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Записывай здесь важные мысли из урока..."
+              className="w-full p-8 bg-transparent focus:outline-none min-h-[200px] text-lg leading-relaxed resize-none"
+            />
+          </div>
+        </motion.div>
 
         {lesson.quiz && lesson.quiz.length > 0 && (
           <div className="mb-16">

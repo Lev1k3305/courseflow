@@ -228,3 +228,75 @@ export async function getAllCompletedLessons(coursesList: { id: string }[]) {
 
   return results.reduce((acc, current) => acc + current.length, 0);
 }
+
+/**
+ * Saves a note for a specific lesson.
+ */
+export async function saveNote(courseId: string, lessonId: number, noteText: string) {
+  const db = getDbService();
+  const auth = getAuthService();
+  if (!auth.currentUser) return;
+  const userId = auth.currentUser.uid;
+  const noteId = `${courseId}_${lessonId}`;
+  const path = `userNotes/${userId}/notes/${noteId}`;
+  const noteRef = doc(db, path);
+
+  try {
+    await setDoc(noteRef, {
+      courseId,
+      lessonId,
+      content: noteText,
+      updatedAt: new Date()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Retrieves a note for a specific lesson.
+ */
+export async function getNote(courseId: string, lessonId: number) {
+  const auth = getAuthService();
+  if (!auth.currentUser) return "";
+  const userId = auth.currentUser.uid;
+  const noteId = `${courseId}_${lessonId}`;
+
+  const db = getDbService();
+  const path = `userNotes/${userId}/notes/${noteId}`;
+  const noteRef = doc(db, path);
+
+  try {
+    const docSnap = await getDoc(noteRef);
+    if (docSnap.exists()) {
+      return docSnap.data().content || "";
+    }
+    return "";
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return "";
+  }
+}
+
+/**
+ * Fetches all notes for the current user.
+ */
+export async function getAllNotes() {
+  const auth = getAuthService();
+  if (!auth.currentUser) return [];
+  const userId = auth.currentUser.uid;
+
+  const db = getDbService();
+  const path = `userNotes/${userId}/notes`;
+  try {
+    const notesRef = collection(db, path);
+    const snapshot = await getDocs(notesRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as { id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[];
+  } catch (error) {
+    console.error('Error fetching all notes', error);
+    return [];
+  }
+}
