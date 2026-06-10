@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2 } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
 import { courses } from "@/lib/data";
@@ -104,6 +104,17 @@ export default function ProfilePage() {
     'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
   ];
 
+  const categories = useMemo(() => Array.from(new Set(courses.map(c => c.category))), []);
+  const skillProgress = useMemo(() => categories.map(cat => {
+    // Determine a deterministic progress based on completedCount or stable indices
+    // For now, we'll use a stable hash-like value if we don't have per-category persistence
+    const seed = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const progress = (seed + completedCount * 7) % 101;
+    return { name: cat, progress };
+  }), [categories, completedCount]);
+
+  const userLevel = useMemo(() => Math.floor(completedCount / 3) + 1, [completedCount]);
+
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 relative overflow-hidden">
       {/* Background blobs */}
@@ -111,7 +122,7 @@ export default function ProfilePage() {
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] -z-10" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:32px_32px] opacity-20 -z-20" />
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <Link href="/" className="inline-flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-8 hover:text-indigo-600 transition-all font-bold text-sm uppercase tracking-widest vk-active">
           <ArrowLeft size={18} /> Назад
         </Link>
@@ -122,125 +133,197 @@ export default function ProfilePage() {
             <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Загрузка профиля...</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Premium Profile Header */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative rounded-[3rem] p-8 md:p-16 overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-2xl"
-            >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl -ml-32 -mb-32" />
-
-              <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                <div className="relative shrink-0">
-                  <div className="absolute -inset-4 bg-white/10 dark:bg-zinc-900/5 rounded-full blur-2xl" />
-                  <div className="relative">
-                    <img src={avatarUrl} alt="Avatar" className="w-40 h-40 rounded-[2.5rem] border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover rotate-3 hover:rotate-0 transition-transform duration-500" />
-                    <div className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-3 rounded-2xl shadow-xl">
-                      <Trophy size={20} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center md:text-left space-y-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2 block">Личный кабинет</span>
-                    <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none">
-                      {firstName}<br />{lastName}
-                    </h1>
-                  </div>
-
-                  <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                    <div className="px-4 py-2 bg-white/10 dark:bg-zinc-900/5 backdrop-blur-md rounded-xl text-xs font-bold border border-white/10 dark:border-zinc-900/10">
-                      ID: {userId || "------"}
-                    </div>
-                    <div className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20">
-                      Pro Аккаунт
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Completed Lessons Card */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Bento Grid */}
+            <div className="md:col-span-8 space-y-6">
+              {/* Premium Profile Header */}
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="glass-card p-8 rounded-[2.5rem] flex flex-col items-center text-center group hover:border-indigo-500/50 transition-all duration-500"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative rounded-[3rem] p-8 md:p-12 overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-2xl"
               >
-                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <GraduationCap size={24} />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl -ml-32 -mb-32" />
+
+                <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 md:gap-8">
+                  <div className="relative shrink-0">
+                    <img src={avatarUrl} alt="Avatar" className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover" />
+                    <div className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-2 rounded-xl shadow-xl">
+                      <Trophy size={16} />
+                    </div>
+                  </div>
+
+                  <div className="text-center sm:text-left flex-grow">
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-50 mb-1 block italic">Мастер Знаний</span>
+                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight mb-3">
+                      {firstName} {lastName}
+                    </h1>
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                      <div className="px-3 py-1 bg-white/10 dark:bg-zinc-900/5 backdrop-blur-md rounded-lg text-[10px] font-bold border border-white/10 dark:border-zinc-900/10">
+                        Level {userLevel}
+                      </div>
+                      <div className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">
+                        Online
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-3xl font-black mb-1">{completedCount}</div>
-                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Уроков пройдено</div>
               </motion.div>
 
-              {/* Records Card */}
+              {/* Bento Grid: Stats & Activity */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div
+                   whileHover={{ y: -5 }}
+                   className="glass-card p-6 rounded-[2rem] flex flex-col justify-between"
+                >
+                  <GraduationCap className="text-indigo-500 mb-4" size={24} />
+                  <div>
+                    <div className="text-2xl font-black">{completedCount}</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Уроков пройдено</div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                   whileHover={{ y: -5 }}
+                   className="glass-card p-6 rounded-[2rem] flex flex-col justify-between"
+                >
+                  <Calendar className="text-emerald-500 mb-4" size={24} />
+                  <div>
+                    <div className="text-2xl font-black">5 дней</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ударный режим</div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                   whileHover={{ y: -5 }}
+                   className="glass-card p-6 rounded-[2rem] flex flex-col justify-between sm:col-span-2"
+                >
+                  <BarChart3 className="text-amber-500 mb-4" size={24} />
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-grow">
+                      <div className="text-2xl font-black">{Math.round((completedCount / (courses.length * 8)) * 100)}%</div>
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Общий прогресс</div>
+                    </div>
+                    <div className="w-full max-w-[120px] h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, (completedCount / (courses.length * 8)) * 100)}%` }}
+                        className="h-full bg-amber-500"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Weekly Activity Chart */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="glass-card p-8 rounded-[2.5rem] flex flex-col items-center text-center group hover:border-emerald-500/50 transition-all duration-500"
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="glass-card p-8 rounded-[3rem] overflow-hidden relative"
               >
-                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Calendar size={24} />
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                  <BarChart3 size={120} />
                 </div>
-                <div className="text-3xl font-black mb-1">5 дней</div>
-                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Ударный режим</div>
-              </motion.div>
-
-              {/* Total Courses Card */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass-card p-8 rounded-[2.5rem] flex flex-col items-center text-center group hover:border-amber-500/50 transition-all duration-500"
-              >
-                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <BarChart3 size={24} />
+                <div className="flex items-center gap-3 mb-8 relative z-10">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center">
+                    <Clock size={16} />
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-widest">Недельная активность</h3>
                 </div>
-                <div className="text-3xl font-black mb-1">{courses.length}</div>
-                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Всего курсов</div>
+                <div className="h-64 relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={weeklyStats}>
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="#a855f7" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} opacity={0.1} />
+                      <XAxis dataKey="day" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
+                        contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '16px', color: '#fff', fontSize: '12px' }}
+                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                      />
+                      <Bar dataKey="progress" fill="url(#barGradient)" radius={[6, 6, 6, 6]} barSize={24} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </motion.div>
             </div>
 
-            {/* Weekly Activity Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="glass-card p-8 md:p-10 rounded-[3rem]"
-            >
-              <div className="flex items-center gap-3 mb-8">
-                <BarChart3 className="text-indigo-500" />
-                <h3 className="text-xl font-black uppercase tracking-widest">Активность</h3>
-              </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyStats}>
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" />
-                        <stop offset="100%" stopColor="#a855f7" />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} opacity={0.1} />
-                    <XAxis dataKey="day" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
-                      contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '16px', color: '#fff', fontWeight: 'bold' }}
-                    />
-                    <Bar dataKey="progress" fill="url(#barGradient)" radius={[8, 8, 8, 8]} barSize={32} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
+            {/* Right Column: Skill Map & Info */}
+            <div className="md:col-span-4 space-y-6">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="glass-card p-8 rounded-[3rem]"
+              >
+                <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <Target className="text-rose-500" size={18} /> Карта навыков
+                </h3>
+                <div className="space-y-5">
+                  {skillProgress.map((skill, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
+                        <span className="text-zinc-500">{skill.name}</span>
+                        <span className="text-zinc-900 dark:text-white">{skill.progress}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${skill.progress}%` }}
+                          transition={{ delay: i * 0.1, duration: 1 }}
+                          className={`h-full rounded-full ${
+                            i === 0 ? 'bg-indigo-500' :
+                            i === 1 ? 'bg-emerald-500' :
+                            i === 2 ? 'bg-amber-500' :
+                            i === 3 ? 'bg-rose-500' : 'bg-violet-500'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-            {/* My Notes Section */}
+                <div className="mt-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Trophy className="text-indigo-600 dark:text-indigo-400" size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900 dark:text-indigo-400">Спецпредложение</span>
+                  </div>
+                  <p className="text-[11px] text-indigo-800/70 dark:text-indigo-300/70 leading-relaxed font-medium">
+                    Заверши ещё 2 урока по ИИ, чтобы получить значок «Архитектор Промптов»!
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* ID Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="p-6 rounded-[2rem] bg-gradient-to-br from-zinc-800 to-black text-white shadow-xl relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/10">
+                      <BarChart3 size={14} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Digital Passport</span>
+                  </div>
+                  <div className="font-mono text-sm tracking-widest mb-1 opacity-80">
+                    USER_ID: {userId || "------"}
+                  </div>
+                  <div className="text-[9px] font-bold opacity-40 uppercase">Verified CourseFlow Learner</div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* My Notes Section (Full Width Below) */}
+            <div className="md:col-span-12 mt-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -315,6 +398,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </motion.div>
+            </div>
           </div>
         )}
       </div>
