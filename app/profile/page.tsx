@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
-import { courses } from "@/lib/data";
+import { courses, coursesMap, lessonsMap } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
@@ -18,6 +18,18 @@ const weeklyStats = [
   { day: "Пт", progress: 60 },
   { day: "Сб", progress: 85 },
   { day: "Вс", progress: 50 },
+];
+
+/**
+ * Performance: Define static arrays outside the component body
+ * to prevent recreation and stable reference for memoization.
+ */
+const noteColors = [
+  'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
+  'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
+  'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/50',
+  'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
+  'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
 ];
 
 export default function ProfilePage() {
@@ -95,14 +107,6 @@ export default function ProfilePage() {
   }, []);
 
   if (!mounted) return null;
-
-  const noteColors = [
-    'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
-    'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
-    'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/50',
-    'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
-    'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
-  ];
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 relative overflow-hidden">
@@ -265,8 +269,11 @@ export default function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {notes.map((note, idx) => {
-                    const course = courses.find(c => c.id === note.courseId);
-                    const lesson = course?.lessons.find(l => l.id === note.lessonId);
+                    /**
+                     * Performance: Using O(1) maps for lookups instead of O(N) .find().
+                     */
+                    const course = coursesMap[note.courseId];
+                    const lesson = lessonsMap[`${note.courseId}_${note.lessonId}`];
                     const colorClass = noteColors[idx % noteColors.length];
 
                     return (
