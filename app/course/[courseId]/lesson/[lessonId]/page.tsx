@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { courses } from "@/lib/data";
-import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2, CopyPlus } from "lucide-react";
 import Link from "next/link";
 import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
 import * as motion from "motion/react-client";
@@ -66,6 +66,12 @@ export default function LessonPage() {
     await saveProgress(courseId, lessonId);
     setCompleted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const copyToNotes = (text: string) => {
+    const newNote = noteText ? `${noteText}\n\n${text}` : text;
+    setNoteText(newNote);
+    // Visual feedback could be added here if needed
   };
 
   if (!lesson) {
@@ -153,8 +159,17 @@ export default function LessonPage() {
                   <div className="mt-1.5 hidden sm:flex shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-zinc-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
                     <BookOpen size={16} />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-black mb-4 text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{section.title}</h3>
+                  <div className="flex-grow">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <h3 className="text-xl font-black text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{section.title}</h3>
+                      <button
+                        onClick={() => copyToNotes(`**${section.title}**\n${section.content}`)}
+                        className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 transition-all vk-active shrink-0"
+                        title="Добавить в конспект"
+                      >
+                        <CopyPlus size={16} />
+                      </button>
+                    </div>
                     <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-lg whitespace-pre-line">{section.content}</p>
                   </div>
                 </div>
@@ -187,13 +202,28 @@ export default function LessonPage() {
             )}
           </div>
 
-          <div className="glass-card p-1 rounded-[2rem] overflow-hidden">
-            <textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Записывай здесь важные мысли из урока..."
-              className="w-full p-8 bg-transparent focus:outline-none min-h-[200px] text-lg leading-relaxed resize-none"
-            />
+          <div className="relative group">
+            {/* Notebook aesthetic decorations */}
+            <div className="absolute -left-3 top-8 bottom-8 w-6 flex flex-col justify-around z-20 pointer-events-none opacity-40">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="w-6 h-6 rounded-full bg-zinc-300 dark:bg-zinc-700 border-4 border-zinc-200 dark:border-zinc-800 shadow-inner" />
+              ))}
+            </div>
+
+            <div className="glass-card p-1 rounded-[2rem] overflow-hidden shadow-2xl shadow-indigo-500/5 relative">
+              <div className="absolute top-0 left-0 w-12 h-full bg-indigo-50/50 dark:bg-indigo-950/10 border-r border-indigo-100/50 dark:border-indigo-900/20 pointer-events-none" />
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Записывай здесь важные мысли из урока..."
+                className="w-full p-8 pl-16 bg-transparent focus:outline-none min-h-[300px] text-lg leading-relaxed resize-none font-medium text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 selection:bg-indigo-100 dark:selection:bg-indigo-900/30"
+                style={{
+                  backgroundImage: 'linear-gradient(transparent, transparent 31px, #e5e7eb 31px, #e5e7eb 32px)',
+                  backgroundSize: '100% 32px',
+                  lineHeight: '32px'
+                }}
+              />
+            </div>
           </div>
         </motion.div>
 
