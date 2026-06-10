@@ -5,7 +5,7 @@ import { getAuthService } from "@/lib/firebase";
 import { signInAnonymously } from "firebase/auth";
 import { courses, type Course } from "@/lib/data";
 import { Navbar } from "@/components/Navbar";
-import { Bot, Terminal, Code, Smartphone, Sparkles, ArrowRight, Settings, Palette, Monitor, Globe, Layers, BookOpen, Star, Users, Zap } from "lucide-react";
+import { Bot, Terminal, Code, Smartphone, Sparkles, ArrowRight, Settings, Palette, Monitor, Globe, Layers, BookOpen, Star, Users, Zap, TrendingUp } from "lucide-react";
 import * as motion from "motion/react-client";
 import Link from "next/link";
 
@@ -19,6 +19,7 @@ const iconMapRecord: Record<string, any> = {
   "web-design": Monitor,
   "web-dev": Globe,
   "fullstack-dev": Layers,
+  "mira-growth": TrendingUp,
 };
 
 const categoryGradients: Record<string, string> = {
@@ -27,6 +28,7 @@ const categoryGradients: Record<string, string> = {
   "programming": "from-emerald-600 to-teal-600",
   "design": "from-rose-600 to-orange-600",
   "web": "from-amber-600 to-orange-600",
+  "growth-hacking": "from-violet-600 to-fuchsia-600",
 };
 
 const categories = [
@@ -35,6 +37,7 @@ const categories = [
   { id: "programming", label: "Программирование" },
   { id: "design", label: "Дизайн и UX/UI" },
   { id: "web", label: "Веб-разработка" },
+  { id: "growth-hacking", label: "Growth Hacking" },
 ];
 
 const ratingStars = [1, 2, 3, 4, 5];
@@ -92,6 +95,7 @@ const CourseCard = memo(({ course, index }: CourseCardProps) => {
           course.category === "ai" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600" :
           course.category === "programming" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" :
           course.category === "design" ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600" :
+          course.category === "growth-hacking" ? "bg-violet-100 dark:bg-violet-900/30 text-violet-600" :
           "bg-amber-100 dark:bg-amber-900/30 text-amber-600"
         }`}>
           <IconComponent size={28} strokeWidth={2} />
