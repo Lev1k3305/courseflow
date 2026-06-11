@@ -1408,3 +1408,19 @@ export const courses: Course[] = [
     ],
   },
 ];
+
+/**
+ * Performance: Pre-computed maps for O(1) lookups by ID.
+ * Replaces O(N) .find() operations in components.
+ */
+export const coursesMap: Record<string, Course | undefined> = courses.reduce((acc, course) => {
+  acc[course.id] = course;
+  return acc;
+}, {} as Record<string, Course>);
+
+export const lessonsMap: Record<string, Lesson | undefined> = courses.reduce((acc, course) => {
+  course.lessons.forEach(lesson => {
+    acc[`${course.id}_${lesson.id}`] = lesson;
+  });
+  return acc;
+}, {} as Record<string, Lesson>);

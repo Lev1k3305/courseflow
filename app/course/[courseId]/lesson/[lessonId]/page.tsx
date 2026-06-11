@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { courses } from "@/lib/data";
+import { coursesMap, lessonsMap } from "@/lib/data";
 import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2, CopyPlus } from "lucide-react";
 import Link from "next/link";
 import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
@@ -14,9 +14,9 @@ export default function LessonPage() {
   const courseId = params.courseId as string;
   const lessonId = parseInt(params.lessonId as string);
   
-  const course = courses.find((c) => c.id === courseId);
-  const lesson = course?.lessons.find((l) => l.id === lessonId);
-  const nextLesson = course?.lessons.find((l) => l.id === lessonId + 1);
+  const course = coursesMap[courseId];
+  const lesson = lessonsMap[`${courseId}_${lessonId}`];
+  const nextLesson = lessonsMap[`${courseId}_${lessonId + 1}`];
 
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [answerText, setAnswerText] = useState("");
