@@ -278,6 +278,31 @@ export default function LessonPage() {
                         );
                       })}
                     </div>
+
+                    {isAnswered && q.explanation && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-6 p-6 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                            <Lightbulb size={18} />
+                            <span className="text-xs font-black uppercase tracking-widest">Почему это так?</span>
+                          </div>
+                          <button
+                            onClick={() => copyToNotes(`**Вопрос:** ${q.question}\n**Ответ:** ${q.options[q.correctAnswer]}\n**Объяснение:** ${q.explanation}`)}
+                            className="p-1.5 rounded-lg bg-white dark:bg-zinc-900 text-zinc-500 hover:text-indigo-600 transition-colors vk-active"
+                            title="Копировать объяснение в конспект"
+                          >
+                            <CopyPlus size={14} />
+                          </button>
+                        </div>
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
+                          {q.explanation}
+                        </p>
+                      </motion.div>
+                    )}
                   </motion.div>
                 );
               })}
