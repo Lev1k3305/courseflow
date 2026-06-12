@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { courses } from "@/lib/data";
+import { coursesMap } from "@/lib/data";
 import { ArrowLeft, PlayCircle, Lock, CheckCircle2, Clock, BookOpen, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import * as motion from "motion/react-client";
@@ -11,7 +11,7 @@ import { getCompletedLessonsForCourse } from "@/lib/firebase";
 export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  const course = courses.find((c) => c.id === courseId);
+  const course = coursesMap[courseId];
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
 
   useEffect(() => {

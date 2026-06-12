@@ -29,3 +29,8 @@
 2. Distinguish between partial and complete cache states to avoid serving incomplete data from early lesson checks.
 3. Use optimistic updates with rollbacks to ensure the UI feels instant while maintaining eventual consistency with the database.
 4. When typing registries in TypeScript, use `Promise<T> | undefined` to avoid "condition will always return true" build errors.
+
+## 2026-06-11 - Pre-computed Data Maps for O(1) Lookups
+**Learning:** Performing linear searches (.find()) on static data arrays within render loops or mapping functions (e.g., displaying notes on a Profile Page) creates an O(N*M) bottleneck as the dataset grows.
+
+**Action:** Pre-compute lookup maps (Record types) at the module level for static data. Use composite keys for nested resources (e.g., `courseId_lessonId`) to allow O(1) access throughout the application, significantly reducing reconciliation time and improving UI snappiness.

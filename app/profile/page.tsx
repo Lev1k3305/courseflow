@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
-import { courses } from "@/lib/data";
+import { courses, coursesMap, lessonsMap } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
@@ -348,8 +348,8 @@ export default function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {notes.map((note, idx) => {
-                    const course = courses.find(c => c.id === note.courseId);
-                    const lesson = course?.lessons.find(l => l.id === note.lessonId);
+                    const course = coursesMap[note.courseId];
+                    const lesson = lessonsMap[`${note.courseId}_${note.lessonId}`];
                     const colorClass = noteColors[idx % noteColors.length];
 
                     return (
