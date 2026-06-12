@@ -71,7 +71,13 @@ export default function LessonPage() {
   const copyToNotes = (text: string) => {
     const newNote = noteText ? `${noteText}\n\n${text}` : text;
     setNoteText(newNote);
-    // Visual feedback could be added here if needed
+  };
+
+  const copyTakeaways = () => {
+    if (!lesson?.keyTakeaways) return;
+    const takeawaysText = `### Ключевые моменты из урока "${lesson.title}":\n` +
+      lesson.keyTakeaways.map(t => `• ${t}`).join('\n');
+    copyToNotes(takeawaysText);
   };
 
   if (!lesson) {
@@ -145,6 +151,47 @@ export default function LessonPage() {
         </header>
         
         <div className="prose prose-zinc dark:prose-invert max-w-none mb-12">
+          {lesson.keyTakeaways && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="mb-12 p-8 rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-100 dark:border-indigo-900/30 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
+
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <Lightbulb size={20} />
+                  </div>
+                  <h3 className="text-xl font-black text-indigo-900 dark:text-indigo-400 m-0">Главное из урока</h3>
+                </div>
+                <button
+                  onClick={copyTakeaways}
+                  className="px-4 py-2 bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white transition-all vk-active shadow-sm"
+                >
+                  В конспект
+                </button>
+              </div>
+
+              <ul className="space-y-3 m-0 p-0 list-none relative z-10">
+                {lesson.keyTakeaways.map((takeaway, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-start gap-3 text-indigo-800/80 dark:text-indigo-300/80 font-medium"
+                  >
+                    <Check className="mt-1 shrink-0 text-indigo-500" size={16} />
+                    <span>{takeaway}</span>
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+
           <div className="space-y-10">
             {lesson.sections?.map((section, idx) => (
               <motion.section
@@ -278,6 +325,30 @@ export default function LessonPage() {
                         );
                       })}
                     </div>
+
+                    {isAnswered && q.explanation && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="mt-6 p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 relative overflow-hidden"
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
+                        <div className="flex items-start gap-3">
+                          <MessageSquare size={16} className="text-indigo-500 mt-1 shrink-0" />
+                          <div className="space-y-3">
+                            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed italic">
+                              {q.explanation}
+                            </p>
+                            <button
+                              onClick={() => copyToNotes(`Вопрос: ${q.question}\nПояснение: ${q.explanation}`)}
+                              className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:underline"
+                            >
+                              <CopyPlus size={12} /> Добавить в конспект
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 );
               })}
