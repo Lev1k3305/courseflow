@@ -34,3 +34,8 @@
 **Learning:** Performing linear searches (.find()) on static data arrays within render loops or mapping functions (e.g., displaying notes on a Profile Page) creates an O(N*M) bottleneck as the dataset grows.
 
 **Action:** Pre-compute lookup maps (Record types) at the module level for static data. Use composite keys for nested resources (e.g., `courseId_lessonId`) to allow O(1) access throughout the application, significantly reducing reconciliation time and improving UI snappiness.
+
+## 2026-06-12 - State Isolation for High-Frequency Interactions
+**Learning:** In interactive pages with large amounts of static or expensive content (like lesson pages with prose and quizzes), keeping "draft" states (like textarea values) in the root component causes a full-page re-render on every keystroke. This degrades typing performance and wastes CPU cycles, especially when animations or complex layouts are involved.
+
+**Action:** Extract high-frequency interaction areas into isolated sub-components that manage their own local state. Use `memo` for the surrounding static components. If the parent needs to "push" data into these isolated components (e.g., "Copy to notes"), use `forwardRef` and `useImperativeHandle` to expose specific methods without lifting the entire state back up.

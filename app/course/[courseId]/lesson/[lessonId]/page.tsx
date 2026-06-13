@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo, forwardRef, useImperativeHandle, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { coursesMap, lessonsMap } from "@/lib/data";
 import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2, CopyPlus } from "lucide-react";
@@ -8,38 +8,29 @@ import Link from "next/link";
 import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
 import * as motion from "motion/react-client";
 
-export default function LessonPage() {
-  const params = useParams();
-  const router = useRouter();
-  const courseId = params.courseId as string;
-  const lessonId = parseInt(params.lessonId as string);
-  
-  const course = coursesMap[courseId];
-  const lesson = lessonsMap[`${courseId}_${lessonId}`];
-  const nextLesson = lessonsMap[`${courseId}_${lessonId + 1}`];
-
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
-  const [answerText, setAnswerText] = useState("");
-  const [completed, setCompleted] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
+/**
+ * Isolated Notes Editor component to prevent full-page re-renders on every keystroke.
+ * Uses forwardRef to allow the parent to append content (from "Copy to notes" buttons).
+ */
+const NotesEditor = memo(forwardRef(({ courseId, lessonId }: { courseId: string; lessonId: number }, ref) => {
   const [noteText, setNoteText] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    async function checkProgress() {
-      if (await getProgress(courseId, lessonId)) {
-        setCompleted(true);
-      }
-    }
     async function loadNote() {
       const savedNote = await getNote(courseId, lessonId);
       setNoteText(savedNote);
     }
-    checkProgress();
     loadNote();
   }, [courseId, lessonId]);
+
+  useImperativeHandle(ref, () => ({
+    appendNote: (text: string) => {
+      setNoteText(prev => prev ? `${prev}\n\n${text}` : text);
+    }
+  }));
 
   // Debounced auto-save for notes
   useEffect(() => {
@@ -49,7 +40,6 @@ export default function LessonPage() {
       if (noteText.trim()) {
         setIsSavingNote(true);
         try {
-          // lessonId is already parsed as number at the top of the component
           await saveNote(courseId, lessonId, noteText);
         } finally {
           setIsSavingNote(false);
@@ -60,25 +50,264 @@ export default function LessonPage() {
     return () => clearTimeout(timeoutId);
   }, [noteText, courseId, lessonId, mounted]);
 
-  if (!mounted) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="mb-16"
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <PenLine className="text-indigo-500" size={24} />
+          <h3 className="font-black text-2xl text-zinc-900 dark:text-white">Конспект</h3>
+        </div>
+        {isSavingNote && (
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+            <Loader2 size={14} className="animate-spin" /> Сохранение...
+          </div>
+        )}
+        {!isSavingNote && noteText && (
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-widest">
+            <Save size={14} /> Сохранено
+          </div>
+        )}
+      </div>
 
-  const handleComplete = async () => {
-    await saveProgress(courseId, lessonId);
-    setCompleted(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+      <div className="relative group">
+        <div className="absolute -left-3 top-8 bottom-8 w-6 flex flex-col justify-around z-20 pointer-events-none opacity-40">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="w-6 h-6 rounded-full bg-zinc-300 dark:bg-zinc-700 border-4 border-zinc-200 dark:border-zinc-800 shadow-inner" />
+          ))}
+        </div>
 
-  const copyToNotes = (text: string) => {
-    const newNote = noteText ? `${noteText}\n\n${text}` : text;
-    setNoteText(newNote);
-  };
+        <div className="glass-card p-1 rounded-[2rem] overflow-hidden shadow-2xl shadow-indigo-500/5 relative">
+          <div className="absolute top-0 left-0 w-12 h-full bg-indigo-50/50 dark:bg-indigo-950/10 border-r border-indigo-100/50 dark:border-indigo-900/20 pointer-events-none" />
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Записывай здесь важные мысли из урока..."
+            className="w-full p-8 pl-16 bg-transparent focus:outline-none min-h-[300px] text-lg leading-relaxed resize-none font-medium text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 selection:bg-indigo-100 dark:selection:bg-indigo-900/30"
+            style={{
+              backgroundImage: 'linear-gradient(transparent, transparent 31px, #e5e7eb 31px, #e5e7eb 32px)',
+              backgroundSize: '100% 32px',
+              lineHeight: '32px'
+            }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}));
 
+NotesEditor.displayName = "NotesEditor";
+
+/**
+ * Isolated Final Task section to prevent full-page re-renders when typing the answer.
+ */
+const FinalTaskSection = memo(({ lesson, allQuizzesAnswered, handleComplete }: { lesson: any, allQuizzesAnswered: boolean, handleComplete: () => Promise<void> }) => {
+  const [answerText, setAnswerText] = useState("");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="bg-zinc-900 dark:bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group"
+    >
+      {/* Background pattern */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000" />
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
+            <Lightbulb size={24} />
+          </div>
+          <h3 className="font-black text-2xl text-white dark:text-zinc-900">Финальное задание</h3>
+        </div>
+
+        <p className="text-zinc-300 dark:text-zinc-600 mb-8 leading-relaxed text-lg font-medium">
+          {lesson.task}
+        </p>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">
+             <MessageSquare size={14} /> Твой ответ
+          </div>
+          <textarea
+            value={answerText}
+            onChange={(e) => setAnswerText(e.target.value)}
+            className="w-full p-6 rounded-3xl border-2 border-zinc-800 dark:border-zinc-100 bg-zinc-800 dark:bg-zinc-50 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-600 dark:placeholder:text-zinc-400 text-white dark:text-zinc-900 min-h-[160px] text-lg font-medium"
+            placeholder="Опиши свое решение здесь..."
+          />
+
+          <button
+            onClick={handleComplete}
+            disabled={!allQuizzesAnswered || answerText.trim().length < 5}
+            className={`mt-6 w-full flex items-center justify-center gap-3 px-8 py-5 rounded-3xl font-black text-lg transition-all duration-300 vk-active shadow-xl ${
+              allQuizzesAnswered && answerText.trim().length >= 5
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20"
+                : "bg-zinc-800 dark:bg-zinc-200 text-zinc-600 dark:text-zinc-400 cursor-not-allowed opacity-50 shadow-none"
+            }`}
+          >
+            Завершить урок <ChevronRight size={20} />
+          </button>
+
+          {(!allQuizzesAnswered || answerText.trim().length < 5) && (
+             <p className="text-center text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-tighter mt-4 animate-pulse">
+               {!allQuizzesAnswered ? "Сначала ответь на все вопросы викторины" : "Напиши более развернутый ответ на задание"}
+             </p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
+FinalTaskSection.displayName = "FinalTaskSection";
+
+const LessonHeader = memo(({ lesson, courseTitle }: { lesson: any, courseTitle?: string }) => (
+  <header className="mb-12">
+    <div className="flex items-center gap-2 mb-3">
+      <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs">
+        {lesson.id}
+      </span>
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Урок курса {courseTitle}</span>
+    </div>
+    <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight">{lesson.title}</h1>
+  </header>
+));
+
+LessonHeader.displayName = "LessonHeader";
+
+const KeyTakeaways = memo(({ lesson, onCopyToNotes }: { lesson: any, onCopyToNotes: (text: string) => void }) => {
   const copyTakeaways = () => {
     if (!lesson?.keyTakeaways) return;
     const takeawaysText = `### Ключевые моменты из урока "${lesson.title}":\n` +
-      lesson.keyTakeaways.map(t => `• ${t}`).join('\n');
-    copyToNotes(takeawaysText);
+      lesson.keyTakeaways.map((t: string) => `• ${t}`).join('\n');
+    onCopyToNotes(takeawaysText);
   };
+
+  if (!lesson.keyTakeaways) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      className="mb-12 p-8 rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-100 dark:border-indigo-900/30 relative overflow-hidden group"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
+
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Lightbulb size={20} />
+          </div>
+          <h3 className="text-xl font-black text-indigo-900 dark:text-indigo-400 m-0">Главное из урока</h3>
+        </div>
+        <button
+          onClick={copyTakeaways}
+          className="px-4 py-2 bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white transition-all vk-active shadow-sm"
+        >
+          В конспект
+        </button>
+      </div>
+
+      <ul className="space-y-3 m-0 p-0 list-none relative z-10">
+        {lesson.keyTakeaways.map((takeaway: string, i: number) => (
+          <motion.li
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="flex items-start gap-3 text-indigo-800/80 dark:text-indigo-300/80 font-medium"
+          >
+            <Check className="mt-1 shrink-0 text-indigo-500" size={16} />
+            <span>{takeaway}</span>
+          </motion.li>
+        ))}
+      </ul>
+    </motion.div>
+  );
+});
+
+KeyTakeaways.displayName = "KeyTakeaways";
+
+const LessonSections = memo(({ sections, onCopyToNotes }: { sections?: any[], onCopyToNotes: (text: string) => void }) => (
+  <div className="space-y-10">
+    {sections?.map((section, idx) => (
+      <motion.section
+        key={idx}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: idx * 0.1 }}
+        className="group relative"
+      >
+        <div className="flex items-start gap-4">
+          <div className="mt-1.5 hidden sm:flex shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-zinc-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
+            <BookOpen size={16} />
+          </div>
+          <div className="flex-grow">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h3 className="text-xl font-black text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{section.title}</h3>
+              <button
+                onClick={() => onCopyToNotes(`**${section.title}**\n${section.content}`)}
+                className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 transition-all vk-active shrink-0"
+                title="Добавить в конспект"
+              >
+                <CopyPlus size={16} />
+              </button>
+            </div>
+            <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-lg whitespace-pre-line">{section.content}</p>
+          </div>
+        </div>
+      </motion.section>
+    ))}
+  </div>
+));
+
+LessonSections.displayName = "LessonSections";
+
+export default function LessonPage() {
+  const params = useParams();
+  const router = useRouter();
+  const courseId = params.courseId as string;
+  const lessonId = parseInt(params.lessonId as string);
+
+  const course = coursesMap[courseId];
+  const lesson = lessonsMap[`${courseId}_${lessonId}`];
+  const nextLesson = lessonsMap[`${courseId}_${lessonId + 1}`];
+
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [completed, setCompleted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const notesEditorRef = useRef<any>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    async function checkProgress() {
+      if (await getProgress(courseId, lessonId)) {
+        setCompleted(true);
+      }
+    }
+    checkProgress();
+  }, [courseId, lessonId]);
+
+  if (!mounted) return null;
+
+  const handleComplete = useCallback(async () => {
+    await saveProgress(courseId, lessonId);
+    setCompleted(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [courseId, lessonId]);
+
+  const copyToNotes = useCallback((text: string) => {
+    notesEditorRef.current?.appendNote(text);
+  }, []);
+
 
   if (!lesson) {
     return (
@@ -140,139 +369,14 @@ export default function LessonPage() {
           </motion.div>
         )}
         
-        <header className="mb-12">
-           <div className="flex items-center gap-2 mb-3">
-              <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs">
-                {lesson.id}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Урок курса {course?.title}</span>
-           </div>
-           <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight">{lesson.title}</h1>
-        </header>
+        <LessonHeader lesson={lesson} courseTitle={course?.title} />
         
         <div className="prose prose-zinc dark:prose-invert max-w-none mb-12">
-          {lesson.keyTakeaways && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="mb-12 p-8 rounded-[2.5rem] bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-100 dark:border-indigo-900/30 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
-
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    <Lightbulb size={20} />
-                  </div>
-                  <h3 className="text-xl font-black text-indigo-900 dark:text-indigo-400 m-0">Главное из урока</h3>
-                </div>
-                <button
-                  onClick={copyTakeaways}
-                  className="px-4 py-2 bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white transition-all vk-active shadow-sm"
-                >
-                  В конспект
-                </button>
-              </div>
-
-              <ul className="space-y-3 m-0 p-0 list-none relative z-10">
-                {lesson.keyTakeaways.map((takeaway, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex items-start gap-3 text-indigo-800/80 dark:text-indigo-300/80 font-medium"
-                  >
-                    <Check className="mt-1 shrink-0 text-indigo-500" size={16} />
-                    <span>{takeaway}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
-          )}
-
-          <div className="space-y-10">
-            {lesson.sections?.map((section, idx) => (
-              <motion.section
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="group relative"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="mt-1.5 hidden sm:flex shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-zinc-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
-                    <BookOpen size={16} />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="flex items-center justify-between gap-4 mb-4">
-                      <h3 className="text-xl font-black text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{section.title}</h3>
-                      <button
-                        onClick={() => copyToNotes(`**${section.title}**\n${section.content}`)}
-                        className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 transition-all vk-active shrink-0"
-                        title="Добавить в конспект"
-                      >
-                        <CopyPlus size={16} />
-                      </button>
-                    </div>
-                    <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-lg whitespace-pre-line">{section.content}</p>
-                  </div>
-                </div>
-              </motion.section>
-            ))}
-          </div>
+          <KeyTakeaways lesson={lesson} onCopyToNotes={copyToNotes} />
+          <LessonSections sections={lesson.sections} onCopyToNotes={copyToNotes} />
         </div>
 
-        {/* Notes Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-16"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <PenLine className="text-indigo-500" size={24} />
-              <h3 className="font-black text-2xl text-zinc-900 dark:text-white">Конспект</h3>
-            </div>
-            {isSavingNote && (
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                <Loader2 size={14} className="animate-spin" /> Сохранение...
-              </div>
-            )}
-            {!isSavingNote && noteText && (
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-500 uppercase tracking-widest">
-                <Save size={14} /> Сохранено
-              </div>
-            )}
-          </div>
-
-          <div className="relative group">
-            {/* Notebook aesthetic decorations */}
-            <div className="absolute -left-3 top-8 bottom-8 w-6 flex flex-col justify-around z-20 pointer-events-none opacity-40">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="w-6 h-6 rounded-full bg-zinc-300 dark:bg-zinc-700 border-4 border-zinc-200 dark:border-zinc-800 shadow-inner" />
-              ))}
-            </div>
-
-            <div className="glass-card p-1 rounded-[2rem] overflow-hidden shadow-2xl shadow-indigo-500/5 relative">
-              <div className="absolute top-0 left-0 w-12 h-full bg-indigo-50/50 dark:bg-indigo-950/10 border-r border-indigo-100/50 dark:border-indigo-900/20 pointer-events-none" />
-              <textarea
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Записывай здесь важные мысли из урока..."
-                className="w-full p-8 pl-16 bg-transparent focus:outline-none min-h-[300px] text-lg leading-relaxed resize-none font-medium text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 selection:bg-indigo-100 dark:selection:bg-indigo-900/30"
-                style={{
-                  backgroundImage: 'linear-gradient(transparent, transparent 31px, #e5e7eb 31px, #e5e7eb 32px)',
-                  backgroundSize: '100% 32px',
-                  lineHeight: '32px'
-                }}
-              />
-            </div>
-          </div>
-        </motion.div>
+        <NotesEditor ref={notesEditorRef} courseId={courseId} lessonId={lessonId} />
 
         {lesson.quiz && lesson.quiz.length > 0 && (
           <div className="mb-16">
@@ -357,58 +461,11 @@ export default function LessonPage() {
         )}
         
         {!completed && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="bg-zinc-900 dark:bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group"
-          >
-            {/* Background pattern */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000" />
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
-                  <Lightbulb size={24} />
-                </div>
-                <h3 className="font-black text-2xl text-white dark:text-zinc-900">Финальное задание</h3>
-              </div>
-
-              <p className="text-zinc-300 dark:text-zinc-600 mb-8 leading-relaxed text-lg font-medium">
-                {lesson.task}
-              </p>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 px-1">
-                   <MessageSquare size={14} /> Твой ответ
-                </div>
-                <textarea
-                  value={answerText}
-                  onChange={(e) => setAnswerText(e.target.value)}
-                  className="w-full p-6 rounded-3xl border-2 border-zinc-800 dark:border-zinc-100 bg-zinc-800 dark:bg-zinc-50 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-600 dark:placeholder:text-zinc-400 text-white dark:text-zinc-900 min-h-[160px] text-lg font-medium"
-                  placeholder="Опиши свое решение здесь..."
-                />
-
-                <button
-                  onClick={handleComplete}
-                  disabled={!allQuizzesAnswered || answerText.trim().length < 5}
-                  className={`mt-6 w-full flex items-center justify-center gap-3 px-8 py-5 rounded-3xl font-black text-lg transition-all duration-300 vk-active shadow-xl ${
-                    allQuizzesAnswered && answerText.trim().length >= 5
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20"
-                      : "bg-zinc-800 dark:bg-zinc-200 text-zinc-600 dark:text-zinc-400 cursor-not-allowed opacity-50 shadow-none"
-                  }`}
-                >
-                  Завершить урок <ChevronRight size={20} />
-                </button>
-
-                {(!allQuizzesAnswered || answerText.trim().length < 5) && (
-                   <p className="text-center text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-tighter mt-4 animate-pulse">
-                     {!allQuizzesAnswered ? "Сначала ответь на все вопросы викторины" : "Напиши более развернутый ответ на задание"}
-                   </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
+          <FinalTaskSection
+            lesson={lesson}
+            allQuizzesAnswered={allQuizzesAnswered}
+            handleComplete={handleComplete}
+          />
         )}
       </div>
     </main>
