@@ -30,6 +30,24 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [notes, setNotes] = useState<{ id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[]>([]);
 
+  const noteColors = useMemo(() => [
+    'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
+    'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
+    'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/50',
+    'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
+    'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
+  ], []);
+
+  const categories = useMemo(() => Array.from(new Set(courses.map(c => c.category))), []);
+
+  const skillProgress = useMemo(() => categories.map(cat => {
+    const seed = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const progress = (seed + completedCount * 7) % 101;
+    return { name: cat, progress };
+  }), [categories, completedCount]);
+
+  const userLevel = useMemo(() => Math.floor(completedCount / 3) + 1, [completedCount]);
+
   useEffect(() => {
     setMounted(true);
     setUserId(Math.floor(Math.random() * 900000) + 100000);
@@ -95,25 +113,6 @@ export default function ProfilePage() {
   }, []);
 
   if (!mounted) return null;
-
-  const noteColors = [
-    'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
-    'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
-    'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/50',
-    'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
-    'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
-  ];
-
-  const categories = useMemo(() => Array.from(new Set(courses.map(c => c.category))), []);
-  const skillProgress = useMemo(() => categories.map(cat => {
-    // Determine a deterministic progress based on completedCount or stable indices
-    // For now, we'll use a stable hash-like value if we don't have per-category persistence
-    const seed = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const progress = (seed + completedCount * 7) % 101;
-    return { name: cat, progress };
-  }), [categories, completedCount]);
-
-  const userLevel = useMemo(() => Math.floor(completedCount / 3) + 1, [completedCount]);
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 relative overflow-hidden">
