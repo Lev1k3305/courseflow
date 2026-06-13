@@ -296,8 +296,6 @@ export default function LessonPage() {
     checkProgress();
   }, [courseId, lessonId]);
 
-  if (!mounted) return null;
-
   const handleComplete = useCallback(async () => {
     await saveProgress(courseId, lessonId);
     setCompleted(true);
@@ -307,6 +305,8 @@ export default function LessonPage() {
   const copyToNotes = useCallback((text: string) => {
     notesEditorRef.current?.appendNote(text);
   }, []);
+
+  if (!mounted) return null;
 
 
   if (!lesson) {
