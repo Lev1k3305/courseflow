@@ -9,7 +9,7 @@ import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
 
-function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: any }) {
+function NoteCard({ note, course, lesson, index }: { note: any, course: any, lesson: any, index: number }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -24,20 +24,20 @@ function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: an
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className="glass-card p-8 rounded-[2.5rem] border-zinc-200/50 dark:border-zinc-800/50 transition-all relative group flex flex-col h-full"
+      whileHover={{ y: -5, rotate: index % 2 === 0 ? -1 : 1 }}
+      className="glass-card p-8 rounded-[2.5rem] border-zinc-200/50 dark:border-zinc-800/50 transition-all relative group flex flex-col h-full shadow-xl shadow-zinc-200/50 dark:shadow-none"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-           <div className="w-2 h-2 rounded-full bg-indigo-500" />
+           <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.5)]" />
            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
              {course?.title || "Курс"}
            </span>
         </div>
         <button
           onClick={handleCopy}
-          className={`p-2 rounded-xl transition-all vk-active ${
-            copied ? "bg-emerald-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-indigo-500"
+          className={`p-2.5 rounded-xl transition-all vk-active ${
+            copied ? "bg-emerald-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-indigo-500 shadow-sm"
           }`}
         >
           {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -49,12 +49,19 @@ function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: an
           {lesson?.title || `Урок ${note.lessonId}`}
         </h4>
 
-        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 line-clamp-6 leading-relaxed whitespace-pre-line mb-6 italic">
-          «{note.content}»
-        </p>
+        <div className="relative mb-6 rounded-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-white dark:bg-zinc-800/50 pointer-events-none"
+               style={{
+                 backgroundImage: 'repeating-linear-gradient(transparent, transparent 23px, rgba(99, 102, 241, 0.1) 23px, rgba(99, 102, 241, 0.1) 24px)',
+                 backgroundSize: '100% 24px'
+               }} />
+          <p className="relative z-10 p-4 text-sm font-medium text-zinc-700 dark:text-zinc-300 line-clamp-6 leading-[24px] whitespace-pre-line italic">
+            «{note.content}»
+          </p>
+        </div>
       </Link>
 
-      <div className="pt-4 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 mt-auto">
+      <div className="pt-4 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/50 mt-auto">
         <div className="flex items-center gap-2">
            <GraduationCap size={12} className="text-zinc-400" />
            <span className="text-[9px] font-black uppercase tracking-tighter text-zinc-400">
@@ -102,6 +109,8 @@ export default function ProfilePage() {
   ], []);
 
   const categories = useMemo(() => Array.from(new Set(courses.map(c => c.category))), []);
+
+  const totalLessonsCount = useMemo(() => courses.reduce((acc, c) => acc + c.lessons.length, 0), []);
 
   const skillProgress = useMemo(() => categories.map(cat => {
     const seed = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -202,59 +211,64 @@ export default function ProfilePage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative rounded-[3rem] p-8 md:p-12 overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-2xl"
+                className="relative rounded-[3rem] p-8 md:p-14 overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)]"
               >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -mr-32 -mt-32" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl -ml-32 -mb-32" />
+                <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/30 rounded-full blur-[100px] -mr-40 -mt-40" />
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-violet-600/30 rounded-full blur-[100px] -ml-40 -mb-40" />
+                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent pointer-events-none" />
 
-                <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 md:gap-8">
+                <div className="relative z-10 flex flex-col items-center gap-8">
                   <div className="relative shrink-0">
-                    <div className="relative p-2">
+                    <div className="relative p-3">
                       {/* Circular Progress Ring */}
                       <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
                         <circle
                           cx="50" cy="50" r="46"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="4"
+                          strokeWidth="2.5"
                           className="text-white/10 dark:text-zinc-900/5"
                         />
                         <motion.circle
                           cx="50" cy="50" r="46"
                           fill="none"
-                          stroke="url(#avatarGradient)"
-                          strokeWidth="4"
+                          stroke="url(#avatarGradientPremium)"
+                          strokeWidth="3.5"
                           strokeDasharray="289"
                           initial={{ strokeDashoffset: 289 }}
-                          animate={{ strokeDashoffset: 289 - (289 * (completedCount / (courses.length * 8))) }}
-                          transition={{ duration: 1.5, ease: "easeOut" }}
+                        animate={{ strokeDashoffset: 289 - (289 * (completedCount / totalLessonsCount)) }}
+                          transition={{ duration: 2, ease: "circOut" }}
                           strokeLinecap="round"
                         />
                         <defs>
-                          <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#6366f1" />
-                            <stop offset="100%" stopColor="#a855f7" />
+                          <linearGradient id="avatarGradientPremium" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#818cf8" />
+                            <stop offset="100%" stopColor="#c084fc" />
                           </linearGradient>
                         </defs>
                       </svg>
-                      <img src={avatarUrl} alt="Avatar" className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover relative z-10" />
+                      <img src={avatarUrl} alt="Avatar" className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-[6px] border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover relative z-10" />
                     </div>
-                    <div className="absolute -bottom-1 -right-1 bg-indigo-500 text-white p-2 rounded-xl shadow-xl z-20">
-                      <Trophy size={16} />
-                    </div>
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white p-3 rounded-2xl shadow-[0_8px_16px_rgba(99,102,241,0.4)] z-20"
+                    >
+                      <Trophy size={20} />
+                    </motion.div>
                   </div>
 
-                  <div className="text-center sm:text-left flex-grow">
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-50 mb-1 block italic">Мастер Знаний</span>
-                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight mb-3">
+                  <div className="text-center">
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 dark:text-indigo-600 mb-2 block italic">Эксперт Платформы</span>
+                    <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-4">
                       {firstName} {lastName}
                     </h1>
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                      <div className="px-3 py-1 bg-white/10 dark:bg-zinc-900/5 backdrop-blur-md rounded-lg text-[10px] font-bold border border-white/10 dark:border-zinc-900/10">
+                    <div className="flex flex-wrap justify-center gap-3">
+                      <div className="px-5 py-2 bg-white/10 dark:bg-zinc-900/5 backdrop-blur-xl rounded-2xl text-[11px] font-black border border-white/20 dark:border-zinc-900/10 shadow-sm uppercase tracking-widest">
                         Level {userLevel}
                       </div>
-                      <div className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">
-                        Online
+                      <div className="px-5 py-2 bg-emerald-500/20 backdrop-blur-xl text-emerald-400 dark:text-emerald-600 rounded-2xl text-[11px] font-black border border-emerald-500/30 shadow-sm uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Online
                       </div>
                     </div>
                   </div>
@@ -271,40 +285,40 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <motion.div
                     whileHover={{ y: -5 }}
-                    className="glass-card p-8 rounded-[2.5rem] flex items-center gap-6"
+                    className="glass-card bg-white/40 dark:bg-zinc-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border-[0.5px] border-zinc-200/50 dark:border-zinc-800/50 flex flex-col items-center text-center gap-4 group"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
-                      <GraduationCap size={28} />
+                    <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <GraduationCap size={32} />
                     </div>
                     <div>
-                      <div className="text-3xl font-black tracking-tight">{completedCount}</div>
-                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Уроков пройдено</div>
+                      <div className="text-4xl font-black tracking-tighter mb-1">{completedCount}</div>
+                      <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Уроков</div>
                     </div>
                   </motion.div>
 
                   <motion.div
                     whileHover={{ y: -5 }}
-                    className="glass-card p-8 rounded-[2.5rem] flex items-center gap-6"
+                    className="glass-card bg-white/40 dark:bg-zinc-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border-[0.5px] border-zinc-200/50 dark:border-zinc-800/50 flex flex-col items-center text-center gap-4 group"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                      <Calendar size={28} />
+                    <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Calendar size={32} />
                     </div>
                     <div>
-                      <div className="text-3xl font-black tracking-tight">5 дней</div>
-                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ударный режим</div>
+                      <div className="text-4xl font-black tracking-tighter mb-1">5</div>
+                      <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Дней стрик</div>
                     </div>
                   </motion.div>
 
                   <motion.div
                     whileHover={{ y: -5 }}
-                    className="glass-card p-8 rounded-[2.5rem] flex items-center gap-6"
+                    className="glass-card bg-white/40 dark:bg-zinc-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border-[0.5px] border-zinc-200/50 dark:border-zinc-800/50 flex flex-col items-center text-center gap-4 group"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                      <Trophy size={28} />
+                    <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <BarChart3 size={32} />
                     </div>
                     <div>
-                      <div className="text-3xl font-black tracking-tight">{Math.round((completedCount / (courses.length * 8)) * 100)}%</div>
-                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Прогресс</div>
+                      <div className="text-4xl font-black tracking-tighter mb-1">{Math.round((completedCount / totalLessonsCount) * 100)}%</div>
+                      <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Прогресс</div>
                     </div>
                   </motion.div>
                 </div>
@@ -391,12 +405,12 @@ export default function ProfilePage() {
                           </div>
                           <span className="text-[11px] font-black tabular-nums">{skill.progress}%</span>
                         </div>
-                        <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden p-0.5">
+                        <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${skill.progress}%` }}
                             transition={{ delay: i * 0.1, duration: 1.5, ease: "circOut" }}
-                            className={`h-full rounded-full shadow-sm ${
+                            className={`h-full rounded-full shadow-[0_0_12px_rgba(99,102,241,0.3)] ${
                               i === 0 ? 'bg-indigo-500' :
                               i === 1 ? 'bg-emerald-500' :
                               i === 2 ? 'bg-amber-500' :
@@ -425,20 +439,44 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="p-6 rounded-[2rem] bg-gradient-to-br from-zinc-800 to-black text-white shadow-xl relative overflow-hidden"
+                className="p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-900 via-zinc-900 to-violet-900 text-white shadow-2xl relative overflow-hidden border border-white/10"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-24 -mb-24 blur-3xl animate-pulse" />
+
                 <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/10">
-                      <BarChart3 size={14} />
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10 shadow-inner">
+                        <Trophy size={18} className="text-indigo-400" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Mastery Passport</span>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Digital Passport</span>
+                    <div className="w-12 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                       <div className="w-6 h-4 bg-indigo-500/20 rounded-sm overflow-hidden flex items-center justify-center">
+                          <div className="w-1 h-1 rounded-full bg-indigo-400 animate-ping" />
+                       </div>
+                    </div>
                   </div>
-                  <div className="font-mono text-sm tracking-widest mb-1 opacity-80">
-                    USER_ID: {userId || "------"}
+
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1">Passport ID</div>
+                      <div className="font-mono text-xl tracking-[0.2em] font-bold text-white/90">
+                        {userId ? `CF-${userId}` : "CF-000000"}
+                      </div>
+                    </div>
+                    <div className="pt-4 flex items-center justify-between">
+                       <div>
+                          <div className="text-[8px] font-black text-indigo-400/60 uppercase tracking-widest mb-0.5">Status</div>
+                          <div className="text-xs font-black uppercase tracking-widest">Verified Expert</div>
+                       </div>
+                       <div className="text-right">
+                          <div className="text-[8px] font-black text-indigo-400/60 uppercase tracking-widest mb-0.5">Issue Date</div>
+                          <div className="text-xs font-black uppercase tracking-widest">2024-25</div>
+                       </div>
+                    </div>
                   </div>
-                  <div className="text-[9px] font-bold opacity-40 uppercase">Verified CourseFlow Learner</div>
                 </div>
               </motion.div>
             </div>
@@ -468,7 +506,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-                  {notes.map((note, idx) => {
+                  {notes.map((note, index) => {
                     const course = coursesMap[note.courseId];
                     const lesson = lessonsMap[`${note.courseId}_${note.lessonId}`];
 
@@ -478,6 +516,7 @@ export default function ProfilePage() {
                         note={note}
                         course={course}
                         lesson={lesson}
+                        index={index}
                       />
                     );
                   })}
