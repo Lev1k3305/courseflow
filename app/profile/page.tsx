@@ -1,13 +1,76 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target, Copy, Check } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
 import { courses, coursesMap, lessonsMap } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
+
+function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: any }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(note.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      className="glass-card p-8 rounded-[2.5rem] border-zinc-200/50 dark:border-zinc-800/50 transition-all relative group flex flex-col h-full"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+           <div className="w-2 h-2 rounded-full bg-indigo-500" />
+           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+             {course?.title || "Курс"}
+           </span>
+        </div>
+        <button
+          onClick={handleCopy}
+          className={`p-2 rounded-xl transition-all vk-active ${
+            copied ? "bg-emerald-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-indigo-500"
+          }`}
+        >
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+        </button>
+      </div>
+
+      <Link href={`/course/${note.courseId}/lesson/${note.lessonId}`} className="flex-grow group/link">
+        <h4 className="font-black text-xl leading-tight mb-4 group-hover/link:text-indigo-500 transition-colors">
+          {lesson?.title || `Урок ${note.lessonId}`}
+        </h4>
+
+        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 line-clamp-6 leading-relaxed whitespace-pre-line mb-6 italic">
+          «{note.content}»
+        </p>
+      </Link>
+
+      <div className="pt-4 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 mt-auto">
+        <div className="flex items-center gap-2">
+           <GraduationCap size={12} className="text-zinc-400" />
+           <span className="text-[9px] font-black uppercase tracking-tighter text-zinc-400">
+             Урок {note.lessonId}
+           </span>
+        </div>
+        <div className="flex items-center gap-2">
+           <Calendar size={12} className="text-zinc-400" />
+           <span className="text-[9px] font-black uppercase tracking-tighter text-zinc-400">
+             {new Date(note.updatedAt?.seconds * 1000).toLocaleDateString() || 'Недавно'}
+           </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 // Mock data for progress
 const weeklyStats = [
@@ -146,8 +209,37 @@ export default function ProfilePage() {
 
                 <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 md:gap-8">
                   <div className="relative shrink-0">
-                    <img src={avatarUrl} alt="Avatar" className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover" />
-                    <div className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-2 rounded-xl shadow-xl">
+                    <div className="relative p-2">
+                      {/* Circular Progress Ring */}
+                      <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                        <circle
+                          cx="50" cy="50" r="46"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          className="text-white/10 dark:text-zinc-900/5"
+                        />
+                        <motion.circle
+                          cx="50" cy="50" r="46"
+                          fill="none"
+                          stroke="url(#avatarGradient)"
+                          strokeWidth="4"
+                          strokeDasharray="289"
+                          initial={{ strokeDashoffset: 289 }}
+                          animate={{ strokeDashoffset: 289 - (289 * (completedCount / (courses.length * 8))) }}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                          strokeLinecap="round"
+                        />
+                        <defs>
+                          <linearGradient id="avatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#6366f1" />
+                            <stop offset="100%" stopColor="#a855f7" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <img src={avatarUrl} alt="Avatar" className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover relative z-10" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 bg-indigo-500 text-white p-2 rounded-xl shadow-xl z-20">
                       <Trophy size={16} />
                     </div>
                   </div>
@@ -169,49 +261,53 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
 
-              {/* Bento Grid: Stats & Activity */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <motion.div
-                   whileHover={{ y: -5 }}
-                   className="glass-card p-6 rounded-[2rem] flex flex-col justify-between"
-                >
-                  <GraduationCap className="text-indigo-500 mb-4" size={24} />
-                  <div>
-                    <div className="text-2xl font-black">{completedCount}</div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Уроков пройдено</div>
-                  </div>
-                </motion.div>
+              {/* Dashboard Stats Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 px-4">
+                  <BarChart3 className="text-indigo-500" size={20} />
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-400">Статистика обучения</h3>
+                </div>
 
-                <motion.div
-                   whileHover={{ y: -5 }}
-                   className="glass-card p-6 rounded-[2rem] flex flex-col justify-between"
-                >
-                  <Calendar className="text-emerald-500 mb-4" size={24} />
-                  <div>
-                    <div className="text-2xl font-black">5 дней</div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ударный режим</div>
-                  </div>
-                </motion.div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="glass-card p-8 rounded-[2.5rem] flex items-center gap-6"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                      <GraduationCap size={28} />
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black tracking-tight">{completedCount}</div>
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Уроков пройдено</div>
+                    </div>
+                  </motion.div>
 
-                <motion.div
-                   whileHover={{ y: -5 }}
-                   className="glass-card p-6 rounded-[2rem] flex flex-col justify-between sm:col-span-2"
-                >
-                  <BarChart3 className="text-amber-500 mb-4" size={24} />
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-grow">
-                      <div className="text-2xl font-black">{Math.round((completedCount / (courses.length * 8)) * 100)}%</div>
-                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Общий прогресс</div>
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="glass-card p-8 rounded-[2.5rem] flex items-center gap-6"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                      <Calendar size={28} />
                     </div>
-                    <div className="w-full max-w-[120px] h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(100, (completedCount / (courses.length * 8)) * 100)}%` }}
-                        className="h-full bg-amber-500"
-                      />
+                    <div>
+                      <div className="text-3xl font-black tracking-tight">5 дней</div>
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ударный режим</div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="glass-card p-8 rounded-[2.5rem] flex items-center gap-6"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                      <Trophy size={28} />
+                    </div>
+                    <div>
+                      <div className="text-3xl font-black tracking-tight">{Math.round((completedCount / (courses.length * 8)) * 100)}%</div>
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Прогресс</div>
+                    </div>
+                  </motion.div>
+                </div>
               </div>
 
               {/* Weekly Activity Chart */}
@@ -258,33 +354,59 @@ export default function ProfilePage() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="glass-card p-8 rounded-[3rem]"
+                className="glass-card p-8 rounded-[3rem] relative overflow-hidden"
               >
-                <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Target className="text-rose-500" size={18} /> Карта навыков
+                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+
+                <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-3 relative z-10">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20">
+                    <Target size={16} />
+                  </div>
+                  Карта навыков
                 </h3>
-                <div className="space-y-5">
-                  {skillProgress.map((skill, i) => (
-                    <div key={i} className="space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
-                        <span className="text-zinc-500">{skill.name}</span>
-                        <span className="text-zinc-900 dark:text-white">{skill.progress}%</span>
+
+                <div className="space-y-6 relative z-10">
+                  {skillProgress.map((skill, i) => {
+                    const icons = [
+                      <Target key="ai" size={14} />,
+                      <GraduationCap key="prog" size={14} />,
+                      <BarChart3 key="web" size={14} />,
+                      <Trophy key="growth" size={14} />,
+                      <Calendar key="design" size={14} />
+                    ];
+
+                    return (
+                      <div key={i} className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                             <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${
+                               i === 0 ? 'bg-indigo-500/10 text-indigo-500' :
+                               i === 1 ? 'bg-emerald-500/10 text-emerald-500' :
+                               i === 2 ? 'bg-amber-500/10 text-amber-500' :
+                               i === 3 ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'
+                             }`}>
+                               {icons[i % icons.length]}
+                             </div>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{skill.name}</span>
+                          </div>
+                          <span className="text-[11px] font-black tabular-nums">{skill.progress}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden p-0.5">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${skill.progress}%` }}
+                            transition={{ delay: i * 0.1, duration: 1.5, ease: "circOut" }}
+                            className={`h-full rounded-full shadow-sm ${
+                              i === 0 ? 'bg-indigo-500' :
+                              i === 1 ? 'bg-emerald-500' :
+                              i === 2 ? 'bg-amber-500' :
+                              i === 3 ? 'bg-rose-500' : 'bg-violet-500'
+                            }`}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${skill.progress}%` }}
-                          transition={{ delay: i * 0.1, duration: 1 }}
-                          className={`h-full rounded-full ${
-                            i === 0 ? 'bg-indigo-500' :
-                            i === 1 ? 'bg-emerald-500' :
-                            i === 2 ? 'bg-amber-500' :
-                            i === 3 ? 'bg-rose-500' : 'bg-violet-500'
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="mt-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
@@ -345,53 +467,18 @@ export default function ProfilePage() {
                   <p className="text-zinc-500 font-bold">У тебя пока нет конспектов. Начни учиться и записывать важное!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                   {notes.map((note, idx) => {
                     const course = coursesMap[note.courseId];
                     const lesson = lessonsMap[`${note.courseId}_${note.lessonId}`];
-                    const colorClass = noteColors[idx % noteColors.length];
 
                     return (
-                      <motion.div
+                      <NoteCard
                         key={note.id}
-                        initial={{ opacity: 0, rotate: idx % 2 === 0 ? -1 : 1 }}
-                        whileInView={{ opacity: 1, rotate: idx % 2 === 0 ? -2 : 2 }}
-                        whileHover={{ rotate: 0, scale: 1.02, zIndex: 20 }}
-                        className={`p-8 rounded-[2.5rem] border-2 shadow-xl shadow-black/5 transition-all cursor-pointer relative group ${colorClass}`}
-                      >
-                        {/* Tape decoration */}
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/40 dark:bg-black/20 backdrop-blur-sm border border-white/20 dark:border-black/10 rotate-1 z-10" />
-
-                        <Link href={`/course/${note.courseId}/lesson/${note.lessonId}`} className="block h-full">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
-                                {course?.title}
-                              </span>
-                              <div className="w-8 h-8 rounded-full bg-white/50 dark:bg-black/20 flex items-center justify-center">
-                                <ChevronRight size={16} className="opacity-60" />
-                              </div>
-                            </div>
-
-                            <h4 className="font-black text-xl leading-tight">
-                              {lesson?.title}
-                            </h4>
-
-                            <p className="text-sm font-medium opacity-70 line-clamp-4 leading-relaxed whitespace-pre-line">
-                              {note.content}
-                            </p>
-
-                            <div className="pt-4 flex items-center justify-between border-t border-black/5 dark:border-white/5">
-                              <span className="text-[9px] font-black uppercase tracking-tighter opacity-40">
-                                Урок {note.lessonId}
-                              </span>
-                              <span className="text-[9px] font-black uppercase tracking-tighter opacity-40">
-                                {new Date(note.updatedAt?.seconds * 1000).toLocaleDateString() || 'Недавно'}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      </motion.div>
+                        note={note}
+                        course={course}
+                        lesson={lesson}
+                      />
                     );
                   })}
                 </div>
