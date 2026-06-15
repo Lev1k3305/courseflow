@@ -39,3 +39,12 @@
 **Learning:** In interactive pages with large amounts of static or expensive content (like lesson pages with prose and quizzes), keeping "draft" states (like textarea values) in the root component causes a full-page re-render on every keystroke. This degrades typing performance and wastes CPU cycles, especially when animations or complex layouts are involved.
 
 **Action:** Extract high-frequency interaction areas into isolated sub-components that manage their own local state. Use `memo` for the surrounding static components. If the parent needs to "push" data into these isolated components (e.g., "Copy to notes"), use `forwardRef` and `useImperativeHandle` to expose specific methods without lifting the entire state back up.
+
+## 2026-06-15 - Profile Data & Rendering Optimization
+**Learning:** Redundant Firestore reads for user notes and unoptimized component trees in the Profile page create unnecessary network egress and CPU load. Linear search for total lesson count on every render is also an avoidable O(N) operation.
+
+**Action:**
+1. Implement user-scoped in-memory caching for Firestore notes with cache invalidation on write.
+2. Memoize high-frequency list items (like NoteCards) and use stable identifiers for tactile UI effects (rotation, colors).
+3. Pre-calculate static curriculum metrics (total lessons) with useMemo to ensure UI consistency and performance.
+4. Set explicit dimensions and eager loading for header-level images to optimize LCP and CLS.

@@ -4,12 +4,25 @@ import { useEffect, useState, useMemo } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target, Copy, Check } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
-import { courses, coursesMap, lessonsMap } from "@/lib/data";
+import { courses, coursesMap, lessonsMap, type Course, type Lesson } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
+import { memo } from "react";
 
-function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: any }) {
+interface Note {
+  id: string;
+  courseId: string;
+  lessonId: number;
+  content: string;
+  updatedAt: any;
+}
+
+/**
+ * Memoized Note Card component.
+ * Uses an index-based alternating rotation for a tactile feel.
+ */
+const NoteCard = memo(({ note, course, lesson, index }: { note: Note, course?: Course, lesson?: Lesson, index: number }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -24,8 +37,14 @@ function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: an
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className="glass-card p-8 rounded-[2.5rem] border-zinc-200/50 dark:border-zinc-800/50 transition-all relative group flex flex-col h-full"
+      whileHover={{ y: -5, rotate: index % 2 === 0 ? 1 : -1 }}
+      className={`glass-card p-8 rounded-[2.5rem] border-zinc-200/50 dark:border-zinc-800/50 transition-all relative group flex flex-col h-full ${
+        index % 5 === 0 ? 'bg-amber-50/30 dark:bg-amber-950/10' :
+        index % 5 === 1 ? 'bg-blue-50/30 dark:bg-blue-950/10' :
+        index % 5 === 2 ? 'bg-emerald-50/30 dark:bg-emerald-950/10' :
+        index % 5 === 3 ? 'bg-rose-50/30 dark:bg-rose-950/10' :
+        'bg-violet-50/30 dark:bg-violet-950/10'
+      }`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -70,7 +89,9 @@ function NoteCard({ note, course, lesson }: { note: any, course: any, lesson: an
       </div>
     </motion.div>
   );
-}
+});
+
+NoteCard.displayName = "NoteCard";
 
 // Mock data for progress
 const weeklyStats = [
@@ -83,6 +104,8 @@ const weeklyStats = [
   { day: "Вс", progress: 50 },
 ];
 
+const categories = Array.from(new Set(courses.map(c => c.category)));
+
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState("Имя");
   const [lastName, setLastName] = useState("Пользователь");
@@ -91,17 +114,11 @@ export default function ProfilePage() {
   const [completedCount, setCompletedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
-  const [notes, setNotes] = useState<{ id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
 
-  const noteColors = useMemo(() => [
-    'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
-    'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
-    'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800/50',
-    'bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
-    'bg-violet-100 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800/50',
-  ], []);
-
-  const categories = useMemo(() => Array.from(new Set(courses.map(c => c.category))), []);
+  const totalLessonsCount = useMemo(() =>
+    courses.reduce((acc, course) => acc + course.lessons.length, 0)
+  , []);
 
   const skillProgress = useMemo(() => categories.map(cat => {
     const seed = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -226,7 +243,7 @@ export default function ProfilePage() {
                           strokeWidth="4"
                           strokeDasharray="289"
                           initial={{ strokeDashoffset: 289 }}
-                          animate={{ strokeDashoffset: 289 - (289 * (completedCount / (courses.length * 8))) }}
+                          animate={{ strokeDashoffset: 289 - (289 * (completedCount / totalLessonsCount)) }}
                           transition={{ duration: 1.5, ease: "easeOut" }}
                           strokeLinecap="round"
                         />
@@ -237,7 +254,14 @@ export default function ProfilePage() {
                           </linearGradient>
                         </defs>
                       </svg>
-                      <img src={avatarUrl} alt="Avatar" className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover relative z-10" />
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white/20 dark:border-zinc-900/10 shadow-2xl object-cover relative z-10"
+                        loading="eager"
+                        width={128}
+                        height={128}
+                      />
                     </div>
                     <div className="absolute -bottom-1 -right-1 bg-indigo-500 text-white p-2 rounded-xl shadow-xl z-20">
                       <Trophy size={16} />
@@ -303,7 +327,7 @@ export default function ProfilePage() {
                       <Trophy size={28} />
                     </div>
                     <div>
-                      <div className="text-3xl font-black tracking-tight">{Math.round((completedCount / (courses.length * 8)) * 100)}%</div>
+                      <div className="text-3xl font-black tracking-tight">{Math.round((completedCount / totalLessonsCount) * 100)}%</div>
                       <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Прогресс</div>
                     </div>
                   </motion.div>
@@ -478,6 +502,7 @@ export default function ProfilePage() {
                         note={note}
                         course={course}
                         lesson={lesson}
+                        index={idx}
                       />
                     );
                   })}

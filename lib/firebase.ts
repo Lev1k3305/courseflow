@@ -20,6 +20,12 @@ interface CourseCacheEntry {
 const userCourseProgressCache: Record<string, Record<string, CourseCacheEntry>> = {};
 
 /**
+ * In-memory cache for user notes to prevent redundant Firestore requests.
+ * Scoped by user ID to ensure data isolation.
+ */
+const userNotesCache: Record<string, { id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[] | undefined> = {};
+
+/**
  * Deduplication registry for in-flight Firestore requests.
  * Prevents multiple concurrent requests for the same course data.
  * Format: { userId: { courseId: Promise<number[]> } }
@@ -248,6 +254,11 @@ export async function saveNote(courseId: string, lessonId: number, noteText: str
       content: noteText,
       updatedAt: new Date()
     });
+
+    // Invalidate notes cache for this user to ensure consistency on next fetch
+    if (userNotesCache[userId]) {
+      delete userNotesCache[userId];
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -286,15 +297,25 @@ export async function getAllNotes() {
   if (!auth.currentUser) return [];
   const userId = auth.currentUser.uid;
 
+  // Return from user-scoped cache if available
+  if (userNotesCache[userId]) {
+    return userNotesCache[userId]!;
+  }
+
   const db = getDbService();
   const path = `userNotes/${userId}/notes`;
   try {
     const notesRef = collection(db, path);
     const snapshot = await getDocs(notesRef);
-    return snapshot.docs.map(doc => ({
+    const notes = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as { id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[];
+
+    // Populate user-scoped cache
+    userNotesCache[userId] = notes;
+
+    return notes;
   } catch (error) {
     console.error('Error fetching all notes', error);
     return [];
