@@ -166,7 +166,7 @@ const FinalTaskSection = memo(({ lesson, allQuizzesAnswered, handleComplete }: {
 
 FinalTaskSection.displayName = "FinalTaskSection";
 
-const LessonHeader = memo(({ lesson, courseTitle }: { lesson: any, courseTitle?: string }) => (
+const LessonHeader = memo(({ lesson, courseTitle, onCopyToNotes }: { lesson: any, courseTitle?: string, onCopyToNotes: (text: string) => void }) => (
   <header className="mb-12">
     <div className="flex items-center gap-2 mb-3">
       <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs">
@@ -174,7 +174,18 @@ const LessonHeader = memo(({ lesson, courseTitle }: { lesson: any, courseTitle?:
       </span>
       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Урок курса {courseTitle}</span>
     </div>
-    <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight">{lesson.title}</h1>
+    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+      <div className="flex-grow">
+        <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight mb-4">{lesson.title}</h1>
+        <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-lg font-medium max-w-2xl">{lesson.description}</p>
+      </div>
+      <button
+        onClick={() => onCopyToNotes(`**${lesson.title}**\n${lesson.description}`)}
+        className="shrink-0 flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all vk-active shadow-sm border border-zinc-200 dark:border-zinc-700"
+      >
+        <CopyPlus size={16} /> Описание в конспект
+      </button>
+    </div>
   </header>
 ));
 
@@ -283,8 +294,17 @@ export default function LessonPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [completed, setCompleted] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showFAB, setShowFAB] = useState(false);
 
   const notesEditorRef = useRef<any>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowFAB(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -369,14 +389,16 @@ export default function LessonPage() {
           </motion.div>
         )}
         
-        <LessonHeader lesson={lesson} courseTitle={course?.title} />
+        <LessonHeader lesson={lesson} courseTitle={course?.title} onCopyToNotes={copyToNotes} />
         
         <div className="prose prose-zinc dark:prose-invert max-w-none mb-12">
           <KeyTakeaways lesson={lesson} onCopyToNotes={copyToNotes} />
           <LessonSections sections={lesson.sections} onCopyToNotes={copyToNotes} />
         </div>
 
-        <NotesEditor ref={notesEditorRef} courseId={courseId} lessonId={lessonId} />
+        <div id="notes-section">
+          <NotesEditor ref={notesEditorRef} courseId={courseId} lessonId={lessonId} />
+        </div>
 
         {lesson.quiz && lesson.quiz.length > 0 && (
           <div className="mb-16">
@@ -468,6 +490,23 @@ export default function LessonPage() {
           />
         )}
       </div>
+
+      {/* Floating Action Button for quick access to Notes */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8, y: 20 }}
+        animate={{
+          opacity: showFAB ? 1 : 0,
+          scale: showFAB ? 1 : 0.8,
+          y: showFAB ? 0 : 20
+        }}
+        onClick={() => {
+          const notesSection = document.getElementById('notes-section');
+          notesSection?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        className={`fixed bottom-24 right-6 z-[70] p-5 rounded-full bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 vk-active md:bottom-8 ${!showFAB ? 'pointer-events-none' : ''}`}
+      >
+        <PenLine size={24} />
+      </motion.button>
     </main>
   );
 }
