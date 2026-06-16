@@ -3,7 +3,7 @@
 import { useEffect, useState, memo, forwardRef, useImperativeHandle, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { coursesMap, lessonsMap } from "@/lib/data";
-import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2, CopyPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Save, Loader2, CopyPlus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
 import * as motion from "motion/react-client";
@@ -105,8 +105,15 @@ NotesEditor.displayName = "NotesEditor";
 /**
  * Isolated Final Task section to prevent full-page re-renders when typing the answer.
  */
-const FinalTaskSection = memo(({ lesson, allQuizzesAnswered, handleComplete }: { lesson: any, allQuizzesAnswered: boolean, handleComplete: () => Promise<void> }) => {
+const FinalTaskSection = memo(({ lesson, allQuizzesAnswered, handleComplete, onCopyToNotes }: { lesson: any, allQuizzesAnswered: boolean, handleComplete: () => Promise<void>, onCopyToNotes: (text: string) => void }) => {
   const [answerText, setAnswerText] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    onCopyToNotes(`### Финальное задание к уроку "${lesson.title}":\n${lesson.task}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <motion.div
@@ -119,11 +126,24 @@ const FinalTaskSection = memo(({ lesson, allQuizzesAnswered, handleComplete }: {
       <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000" />
 
       <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
-            <Lightbulb size={24} />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
+              <Lightbulb size={24} />
+            </div>
+            <h3 className="font-black text-2xl text-white dark:text-zinc-900">Финальное задание</h3>
           </div>
-          <h3 className="font-black text-2xl text-white dark:text-zinc-900">Финальное задание</h3>
+          <button
+            onClick={handleCopy}
+            className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all vk-active shadow-sm border ${
+              copied
+                ? "bg-emerald-500 text-white border-emerald-400"
+                : "bg-zinc-800 dark:bg-zinc-100 text-zinc-400 dark:text-zinc-500 border-zinc-700 dark:border-zinc-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-500"
+            }`}
+          >
+            {copied ? <Check size={14} /> : <CopyPlus size={14} />}
+            {copied ? "В конспекте" : "Задание в конспект"}
+          </button>
         </div>
 
         <p className="text-zinc-300 dark:text-zinc-600 mb-8 leading-relaxed text-lg font-medium">
@@ -168,11 +188,30 @@ FinalTaskSection.displayName = "FinalTaskSection";
 
 const LessonHeader = memo(({ lesson, courseTitle, onCopyToNotes }: { lesson: any, courseTitle?: string, onCopyToNotes: (text: string) => void }) => {
   const [copied, setCopied] = useState(false);
+  const [allCopied, setAllCopied] = useState(false);
 
   const handleCopy = () => {
     onCopyToNotes(`**${lesson.title}**\n${lesson.description}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyAll = () => {
+    let fullTheory = `## ${lesson.title}\n${lesson.description}\n\n`;
+
+    if (lesson.keyTakeaways && lesson.keyTakeaways.length > 0) {
+      fullTheory += `### Главное из урока:\n` + lesson.keyTakeaways.map((t: string) => `• ${t}`).join('\n') + `\n\n`;
+    }
+
+    if (lesson.sections && lesson.sections.length > 0) {
+      lesson.sections.forEach((s: any) => {
+        fullTheory += `### ${s.title}\n${s.content}\n\n`;
+      });
+    }
+
+    onCopyToNotes(fullTheory.trim());
+    setAllCopied(true);
+    setTimeout(() => setAllCopied(false), 2000);
   };
 
   return (
@@ -188,17 +227,30 @@ const LessonHeader = memo(({ lesson, courseTitle, onCopyToNotes }: { lesson: any
           <h1 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white leading-tight mb-4">{lesson.title}</h1>
           <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-lg font-medium max-w-2xl">{lesson.description}</p>
         </div>
-        <button
-          onClick={handleCopy}
-          className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all vk-active shadow-sm border ${
-            copied
-              ? "bg-emerald-500 text-white border-emerald-400"
-              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white"
-          }`}
-        >
-          {copied ? <Check size={16} /> : <CopyPlus size={16} />}
-          {copied ? "Добавлено" : "Описание в конспект"}
-        </button>
+        <div className="shrink-0 flex flex-col gap-2">
+          <button
+            onClick={handleCopy}
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all vk-active shadow-sm border w-full ${
+              copied
+                ? "bg-emerald-500 text-white border-emerald-400"
+                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white"
+            }`}
+          >
+            {copied ? <Check size={16} /> : <CopyPlus size={16} />}
+            {copied ? "Добавлено" : "Описание"}
+          </button>
+          <button
+            onClick={handleCopyAll}
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] transition-all vk-active shadow-md border w-full ${
+              allCopied
+                ? "bg-emerald-600 text-white border-emerald-500"
+                : "bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700"
+            }`}
+          >
+            {allCopied ? <Check size={14} /> : <Sparkles size={14} />}
+            {allCopied ? "Весь контент добавлен" : "Весь урок в конспект"}
+          </button>
+        </div>
       </div>
     </header>
   );
@@ -540,6 +592,7 @@ export default function LessonPage() {
             lesson={lesson}
             allQuizzesAnswered={allQuizzesAnswered}
             handleComplete={handleComplete}
+            onCopyToNotes={copyToNotes}
           />
         )}
       </div>
