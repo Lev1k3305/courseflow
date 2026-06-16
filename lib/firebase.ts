@@ -20,11 +20,36 @@ interface CourseCacheEntry {
 const userCourseProgressCache: Record<string, Record<string, CourseCacheEntry>> = {};
 
 /**
+ * In-memory cache for user notes to avoid redundant Firestore requests.
+ * Scoped by user ID to prevent data leakage.
+ * Format: { userId: Note[] }
+ */
+interface Note {
+  id: string;
+  courseId: string;
+  lessonId: number;
+  content: string;
+  updatedAt: any;
+}
+
+interface UserNotesCache {
+  notes: Note[];
+  isComplete: boolean;
+}
+
+const userNotesCache: Record<string, UserNotesCache | undefined> = {};
+
+/**
  * Deduplication registry for in-flight Firestore requests.
  * Prevents multiple concurrent requests for the same course data.
  * Format: { userId: { courseId: Promise<number[]> } }
  */
 const inFlightRequests: Record<string, Record<string, Promise<number[]> | undefined>> = {};
+
+/**
+ * Deduplication registry for in-flight notes requests.
+ */
+const inFlightNotesRequests: Record<string, Promise<Note[]> | undefined> = {};
 
 /**
  * Helper to get or initialize the cache for a specific user and course.
@@ -231,6 +256,7 @@ export async function getAllCompletedLessons(coursesList: { id: string }[]) {
 
 /**
  * Saves a note for a specific lesson.
+ * Optimized with optimistic cache updates.
  */
 export async function saveNote(courseId: string, lessonId: number, noteText: string) {
   const db = getDbService();
@@ -241,7 +267,32 @@ export async function saveNote(courseId: string, lessonId: number, noteText: str
   const path = `userNotes/${userId}/notes/${noteId}`;
   const noteRef = doc(db, path);
 
+  // 1. Optimistically update user-scoped cache
+  const cache = userNotesCache[userId];
+  let previousNote: Note | undefined;
+
+  if (cache) {
+    const existingIdx = cache.notes.findIndex(n => n.id === noteId);
+    if (existingIdx !== -1) {
+      previousNote = { ...cache.notes[existingIdx] };
+      cache.notes[existingIdx] = {
+        ...cache.notes[existingIdx],
+        content: noteText,
+        updatedAt: { seconds: Math.floor(Date.now() / 1000) } // Mock Firestore timestamp
+      };
+    } else {
+      cache.notes.push({
+        id: noteId,
+        courseId,
+        lessonId,
+        content: noteText,
+        updatedAt: { seconds: Math.floor(Date.now() / 1000) }
+      });
+    }
+  }
+
   try {
+    // 2. Perform background write
     await setDoc(noteRef, {
       courseId,
       lessonId,
@@ -249,18 +300,35 @@ export async function saveNote(courseId: string, lessonId: number, noteText: str
       updatedAt: new Date()
     });
   } catch (error) {
+    // 3. Rollback cache on error
+    const cache = userNotesCache[userId];
+    if (cache) {
+      if (previousNote) {
+        const idx = cache.notes.findIndex(n => n.id === noteId);
+        if (idx !== -1) cache.notes[idx] = previousNote;
+      } else {
+        cache.notes = cache.notes.filter(n => n.id !== noteId);
+      }
+    }
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
 /**
  * Retrieves a note for a specific lesson.
+ * Optimized to check user-scoped cache first.
  */
 export async function getNote(courseId: string, lessonId: number) {
   const auth = getAuthService();
   if (!auth.currentUser) return "";
   const userId = auth.currentUser.uid;
   const noteId = `${courseId}_${lessonId}`;
+
+  // 1. Check user-scoped cache first
+  const cachedNote = userNotesCache[userId]?.notes.find(n => n.id === noteId);
+  if (cachedNote) {
+    return cachedNote.content;
+  }
 
   const db = getDbService();
   const path = `userNotes/${userId}/notes/${noteId}`;
@@ -269,7 +337,26 @@ export async function getNote(courseId: string, lessonId: number) {
   try {
     const docSnap = await getDoc(noteRef);
     if (docSnap.exists()) {
-      return docSnap.data().content || "";
+      const noteData = docSnap.data();
+      const content = noteData.content || "";
+
+      // Update cache
+      if (!userNotesCache[userId]) {
+        userNotesCache[userId] = { notes: [], isComplete: false };
+      }
+
+      const cache = userNotesCache[userId]!;
+      if (!cache.notes.find(n => n.id === noteId)) {
+        cache.notes.push({
+          id: noteId,
+          courseId,
+          lessonId,
+          content,
+          updatedAt: noteData.updatedAt
+        });
+      }
+
+      return content;
     }
     return "";
   } catch (error) {
@@ -280,23 +367,49 @@ export async function getNote(courseId: string, lessonId: number) {
 
 /**
  * Fetches all notes for the current user.
+ * Optimized with user-scoped in-memory caching and request deduplication.
  */
 export async function getAllNotes() {
   const auth = getAuthService();
   if (!auth.currentUser) return [];
   const userId = auth.currentUser.uid;
 
-  const db = getDbService();
-  const path = `userNotes/${userId}/notes`;
-  try {
-    const notesRef = collection(db, path);
-    const snapshot = await getDocs(notesRef);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as { id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[];
-  } catch (error) {
-    console.error('Error fetching all notes', error);
-    return [];
+  // 1. Return from user-scoped cache if available and complete
+  if (userNotesCache[userId]?.isComplete) {
+    return userNotesCache[userId].notes;
   }
+
+  // 2. Check for an in-flight request
+  if (inFlightNotesRequests[userId]) {
+    return inFlightNotesRequests[userId];
+  }
+
+  // 3. Initiate new request and register it
+  const requestPromise = (async () => {
+    const db = getDbService();
+    const path = `userNotes/${userId}/notes`;
+    try {
+      const notesRef = collection(db, path);
+      const snapshot = await getDocs(notesRef);
+      const notes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Note[];
+
+      // Populate user-scoped cache
+      userNotesCache[userId] = { notes, isComplete: true };
+
+      return notes;
+    } catch (error) {
+      console.error('Error fetching all notes', error);
+      return [];
+    } finally {
+      // Clean up in-flight registry
+      delete inFlightNotesRequests[userId];
+    }
+  })();
+
+  inFlightNotesRequests[userId] = requestPromise;
+
+  return requestPromise;
 }

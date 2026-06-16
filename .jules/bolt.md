@@ -39,3 +39,8 @@
 **Learning:** In interactive pages with large amounts of static or expensive content (like lesson pages with prose and quizzes), keeping "draft" states (like textarea values) in the root component causes a full-page re-render on every keystroke. This degrades typing performance and wastes CPU cycles, especially when animations or complex layouts are involved.
 
 **Action:** Extract high-frequency interaction areas into isolated sub-components that manage their own local state. Use `memo` for the surrounding static components. If the parent needs to "push" data into these isolated components (e.g., "Copy to notes"), use `forwardRef` and `useImperativeHandle` to expose specific methods without lifting the entire state back up.
+
+## 2025-05-16 - Firestore Notes Caching: Partial vs Complete states
+**Learning:** When implementing in-memory caching for Firestore collections, it's critical to distinguish between a partial cache (populated by individual document fetches) and a complete cache (populated by collection queries). Checking only for the existence of the cache key can lead to UI data omission if a single item fetch is mistaken for the full collection.
+
+**Action:** Use an 'isComplete' flag within the cache entry for each user/collection. Only return the cached array in 'getAll' style functions if this flag is true. individual 'get' functions can still benefit from and contribute to the partial cache.
