@@ -1,10 +1,7 @@
-// @ts-ignore
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/components/AuthProvider";
-import { ConditionalLayout } from "@/components/ConditionalLayout";
-import { VKBridgeInitializer } from "@/components/VKBridgeInitializer";
+
+import ClientProviders from "@/components/ClientProviders";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,14 +23,8 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={inter.className}>
-        <VKBridgeInitializer />
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <AuthProvider>
-            <ConditionalLayout>
-              {children}
-            </ConditionalLayout>
-          </AuthProvider>
-        </ThemeProvider>
+
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

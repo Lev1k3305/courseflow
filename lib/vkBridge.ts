@@ -53,6 +53,11 @@ class VKBridgeManager {
    * Check if VK Bridge is available in window
    */
   private isVKBridgeAvailable(): boolean {
+    // In development (non-production), mock VK Bridge availability to avoid errors.
+    if (process.env.NODE_ENV !== 'production') {
+      this.log('Mocking VK Bridge availability in development mode');
+      return true;
+    }
     if (typeof window === 'undefined') {
       this.log('Window object not available');
       return false;

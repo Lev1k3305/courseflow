@@ -104,7 +104,7 @@ export function Navbar() {
               className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               title={resolvedTheme === "dark" ? "Светлая тема" : "Тёмная тема"}
             >
-              {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              {resolvedTheme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
             </button>
           </div>
 
