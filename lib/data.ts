@@ -1589,3 +1589,15 @@ export const lessonsMap: Record<string, Lesson | undefined> = courses.reduce((ac
   });
   return acc;
 }, {} as Record<string, Lesson>);
+
+/**
+ * Performance: Pre-calculated metrics to avoid redundant $O(N)$ operations during render.
+ */
+export const totalLessonsCount = courses.reduce((acc, c) => acc + c.lessons.length, 0);
+
+export const courseCategories = Array.from(new Set(courses.map(c => c.category)));
+
+export const categorySeeds: Record<string, number> = courseCategories.reduce((acc, cat) => {
+  acc[cat] = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return acc;
+}, {} as Record<string, number>);

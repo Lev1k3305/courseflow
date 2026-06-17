@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, memo } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target, Copy, Check, TrendingUp, Sparkles, Star } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
 import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
-import { courses, coursesMap, lessonsMap } from "@/lib/data";
+import { courses, coursesMap, lessonsMap, totalLessonsCount, courseCategories, categorySeeds } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
@@ -119,15 +119,11 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [notes, setNotes] = useState<{ id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[]>([]);
 
-  const categories = useMemo(() => Array.from(new Set(courses.map(c => c.category))), []);
-
-  const totalLessonsCount = useMemo(() => courses.reduce((acc, c) => acc + c.lessons.length, 0), []);
-
-  const skillProgress = useMemo(() => categories.map(cat => {
-    const seed = cat.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const skillProgress = useMemo(() => courseCategories.map(cat => {
+    const seed = categorySeeds[cat] || 0;
     const progress = (seed + completedCount * 7) % 101;
     return { name: cat, progress };
-  }), [categories, completedCount]);
+  }), [completedCount]);
 
   const userLevel = useMemo(() => Math.floor(completedCount / 3) + 1, [completedCount]);
 
@@ -245,7 +241,14 @@ export default function ProfilePage() {
                           </linearGradient>
                         </defs>
                       </svg>
-                      <img src={avatarUrl} alt="Avatar" className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-zinc-900 shadow-xl relative z-10 object-cover" />
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-zinc-900 shadow-xl relative z-10 object-cover"
+                        width={128}
+                        height={128}
+                        loading="eager"
+                      />
                     </div>
                     <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg z-20 border-2 border-white dark:border-zinc-900">
                       <Trophy size={16} />
