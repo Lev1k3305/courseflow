@@ -24,11 +24,11 @@ const NoteCard = memo(({ note, course, lesson, index }: { note: any, course: any
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5, rotate: index % 2 === 0 ? -0.5 : 0.5 }}
-      className="bg-white dark:bg-zinc-900 p-8 rounded-[1.5rem] border-b-4 border-r-4 border-zinc-200 dark:border-zinc-800 transition-all relative group flex flex-col h-full shadow-lg hover:shadow-2xl"
+      whileHover={{ y: -8, rotate: index % 2 === 0 ? -1.5 : 1.5, scale: 1.02 }}
+      className="bg-white dark:bg-zinc-900 p-8 rounded-[1.5rem] border-b-8 border-r-8 border-zinc-200 dark:border-zinc-800 transition-all relative group flex flex-col h-full shadow-xl hover:shadow-indigo-500/10"
     >
       {/* Tape Effect */}
-      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-8 bg-indigo-500/10 dark:bg-indigo-500/20 backdrop-blur-sm -rotate-2 z-20 pointer-events-none border-x border-indigo-500/20" />
+      <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-28 h-10 bg-indigo-500/20 dark:bg-indigo-500/30 backdrop-blur-md -rotate-3 z-20 pointer-events-none border-x-2 border-indigo-500/20 shadow-sm" />
 
       <div className="flex items-center justify-between mb-6 relative z-10">
         <div className="flex flex-col">
@@ -216,14 +216,14 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Profile & Stats */}
-            <div className="lg:col-span-8 space-y-8">
+            {/* Main Bento Container */}
+            <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-8">
 
-              {/* Modern Compact Header */}
+              {/* Modern Compact Header - Large Span */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-card rounded-[3rem] overflow-hidden relative"
+                className="glass-card rounded-[3rem] overflow-hidden relative md:col-span-8 lg:col-span-8"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-transparent pointer-events-none" />
                 <div className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
@@ -279,8 +279,71 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
 
-              {/* Achievements Section */}
-              <div className="space-y-4">
+              {/* ID Card - Sidebar Bento Span */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="p-8 rounded-[3rem] bg-gradient-to-br from-indigo-900 via-zinc-900 to-violet-900 text-white shadow-2xl relative overflow-hidden border border-white/10 md:col-span-4 flex flex-col min-h-[400px]"
+              >
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-24 -mb-24 blur-3xl animate-pulse" />
+
+                <div className="relative z-10 h-full flex flex-col justify-between">
+                  {/* Holographic shimmer effect */}
+                  <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                    <motion.div
+                      animate={{
+                        x: ["-100%", "200%"]
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between mb-10 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
+                        <Sparkles size={20} className="text-indigo-400 animate-pulse" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-indigo-400/80">Digital Credential</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Mastery Passport</span>
+                      </div>
+                    </div>
+                    <div className="w-14 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
+                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                       <div className="w-7 h-5 bg-indigo-500/30 rounded-md flex items-center justify-center border border-white/10">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 relative z-10">
+                    <div>
+                      <div className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-2 opacity-60">Passport Serial ID</div>
+                      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 group-hover:border-indigo-500/50 transition-colors">
+                        <div className="font-mono text-2xl tracking-[0.3em] font-black text-white/95">
+                          {userId ? `CF-${userId}` : "CF-000000"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-6 flex items-center justify-between border-t border-white/10">
+                       <div>
+                          <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Auth Status</div>
+                          <div className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/30">Verified Expert</div>
+                       </div>
+                       <div className="text-right">
+                          <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Valid Thru</div>
+                          <div className="text-[10px] font-black uppercase tracking-widest">PERMANENT</div>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Achievements Section - Large Bento Span */}
+              <div className="md:col-span-12 space-y-4">
                 <div className="flex items-center gap-3 px-2">
                   <Sparkles className="text-amber-500" size={20} />
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Достижения</h3>
@@ -306,8 +369,8 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Dashboard Stats Section - Refined Bento Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              {/* Dashboard Stats Section - Refined Bento Grid - Inside the main container */}
+              <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Large Stats Card */}
                 <motion.div
                   whileHover={{ y: -5 }}
@@ -316,9 +379,9 @@ export default function ProfilePage() {
                   <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
                     <GraduationCap size={160} />
                   </div>
-                  <div className="relative z-10">
+                  <div className="relative z-10 h-full flex flex-col">
                     <div className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-[0.2em] mb-2">Общий прогресс обучения</div>
-                    <div className="flex items-baseline gap-3">
+                    <div className="flex items-baseline gap-3 mb-auto">
                       <div className="text-7xl font-black tracking-tighter">{completedCount}</div>
                       <div className="text-2xl font-bold text-zinc-400 tracking-tight">/ {totalLessonsCount}</div>
                     </div>
@@ -326,7 +389,7 @@ export default function ProfilePage() {
                       Ты прошел уже {Math.round((completedCount / totalLessonsCount) * 100)}% всего материала. Продолжай в том же темпе!
                     </p>
                   </div>
-                  <div className="mt-10 h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
+                  <div className="mt-auto pt-10 h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${(completedCount / totalLessonsCount) * 100}%` }}
@@ -334,6 +397,86 @@ export default function ProfilePage() {
                         className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]"
                      />
                   </div>
+                </motion.div>
+
+                {/* Skill Map - Bento Span */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="glass-card p-8 rounded-[3rem] relative overflow-hidden md:col-span-4 row-span-2"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+
+                  <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-3 relative z-10">
+                    <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20">
+                      <Target size={16} />
+                    </div>
+                    Карта навыков
+                  </h3>
+
+                  <div className="space-y-6 relative z-10">
+                    {skillProgress.map((skill, i) => {
+                      return (
+                        <div key={i} className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                               <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${
+                                 i === 0 ? 'bg-indigo-500/10 text-indigo-500' :
+                                 i === 1 ? 'bg-emerald-500/10 text-emerald-500' :
+                                 i === 2 ? 'bg-amber-500/10 text-amber-500' :
+                                 i === 3 ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'
+                               }`}>
+                                 {skillIcons[i % skillIcons.length]}
+                               </div>
+                               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{skill.name}</span>
+                            </div>
+                            <span className="text-[11px] font-black tabular-nums">{skill.progress}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${skill.progress}%` }}
+                              transition={{ delay: i * 0.1, duration: 1.5, ease: "circOut" }}
+                              className={`h-full rounded-full shadow-[0_0_12px_rgba(99,102,241,0.3)] ${
+                                i === 0 ? 'bg-indigo-500' :
+                                i === 1 ? 'bg-emerald-500' :
+                                i === 2 ? 'bg-amber-500' :
+                                i === 3 ? 'bg-rose-500' : 'bg-violet-500'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Trophy className="text-indigo-600 dark:text-indigo-400" size={16} />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900 dark:text-indigo-400">Спецпредложение</span>
+                    </div>
+                    <p className="text-[11px] text-indigo-800/70 dark:text-indigo-300/70 leading-relaxed font-medium">
+                      Заверши ещё 2 урока по ИИ, чтобы получить значок «Архитектор Промптов»!
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Learning Pulse Card */}
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="md:col-span-4 glass-card p-8 rounded-[3rem] flex flex-col items-center justify-center text-center gap-6 group relative overflow-hidden bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/10"
+                >
+                   <div className="relative">
+                      <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20" />
+                      <div className="w-20 h-20 rounded-[2rem] bg-emerald-500 text-white flex items-center justify-center relative z-10 shadow-lg shadow-emerald-500/20">
+                        <Sparkles size={40} />
+                      </div>
+                   </div>
+                   <div>
+                      <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Ударный режим</div>
+                      <div className="text-4xl font-black tracking-tighter">5 Дней</div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mt-2">Ты в огне! 🔥</p>
+                   </div>
                 </motion.div>
 
                 <div className="md:col-span-4 glass-card p-8 rounded-[3rem] flex flex-col items-center justify-center text-center gap-6 group relative overflow-hidden">
@@ -351,12 +494,12 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Weekly Activity Chart */}
+              {/* Weekly Activity Chart - Bento Span */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="glass-card p-8 md:p-10 rounded-[3rem] overflow-hidden relative"
+                className="glass-card p-8 md:p-10 rounded-[3rem] overflow-hidden relative md:col-span-12"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                   <BarChart3 size={120} />
@@ -386,125 +529,6 @@ export default function ProfilePage() {
                       <Bar dataKey="progress" fill="url(#barGradient)" radius={[6, 6, 6, 6]} barSize={24} />
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Right Column: Skill Map & Info */}
-            <div className="md:col-span-4 space-y-6">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="glass-card p-8 rounded-[3rem] relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
-
-                <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-3 relative z-10">
-                  <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20">
-                    <Target size={16} />
-                  </div>
-                  Карта навыков
-                </h3>
-
-                <div className="space-y-6 relative z-10">
-                  {skillProgress.map((skill, i) => {
-                    return (
-                      <div key={i} className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                             <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${
-                               i === 0 ? 'bg-indigo-500/10 text-indigo-500' :
-                               i === 1 ? 'bg-emerald-500/10 text-emerald-500' :
-                               i === 2 ? 'bg-amber-500/10 text-amber-500' :
-                               i === 3 ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'
-                             }`}>
-                               {skillIcons[i % skillIcons.length]}
-                             </div>
-                             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{skill.name}</span>
-                          </div>
-                          <span className="text-[11px] font-black tabular-nums">{skill.progress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${skill.progress}%` }}
-                            transition={{ delay: i * 0.1, duration: 1.5, ease: "circOut" }}
-                            className={`h-full rounded-full shadow-[0_0_12px_rgba(99,102,241,0.3)] ${
-                              i === 0 ? 'bg-indigo-500' :
-                              i === 1 ? 'bg-emerald-500' :
-                              i === 2 ? 'bg-amber-500' :
-                              i === 3 ? 'bg-rose-500' : 'bg-violet-500'
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Trophy className="text-indigo-600 dark:text-indigo-400" size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900 dark:text-indigo-400">Спецпредложение</span>
-                  </div>
-                  <p className="text-[11px] text-indigo-800/70 dark:text-indigo-300/70 leading-relaxed font-medium">
-                    Заверши ещё 2 урока по ИИ, чтобы получить значок «Архитектор Промптов»!
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* ID Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-900 via-zinc-900 to-violet-900 text-white shadow-2xl relative overflow-hidden border border-white/10"
-              >
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-24 -mb-24 blur-3xl animate-pulse" />
-
-                <div className="relative z-10">
-                  {/* Holographic overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-                  <div className="flex items-center justify-between mb-10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
-                        <Sparkles size={20} className="text-indigo-400 animate-pulse" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-indigo-400/80">Digital Credential</span>
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Mastery Passport</span>
-                      </div>
-                    </div>
-                    <div className="w-14 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
-                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                       <div className="w-7 h-5 bg-indigo-500/30 rounded-md flex items-center justify-center border border-white/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
-                       </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <div className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-2 opacity-60">Passport Serial ID</div>
-                      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 group-hover:border-indigo-500/50 transition-colors">
-                        <div className="font-mono text-2xl tracking-[0.3em] font-black text-white/95">
-                          {userId ? `CF-${userId}` : "CF-000000"}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pt-6 flex items-center justify-between border-t border-white/10">
-                       <div>
-                          <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Auth Status</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/30">Verified Expert</div>
-                       </div>
-                       <div className="text-right">
-                          <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Valid Thru</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest">PERMANENT</div>
-                       </div>
-                    </div>
-                  </div>
                 </div>
               </motion.div>
             </div>
