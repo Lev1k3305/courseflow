@@ -44,3 +44,8 @@
 **Learning:** When implementing in-memory caching for Firestore collections, it's critical to distinguish between a partial cache (populated by individual document fetches) and a complete cache (populated by collection queries). Checking only for the existence of the cache key can lead to UI data omission if a single item fetch is mistaken for the full collection.
 
 **Action:** Use an 'isComplete' flag within the cache entry for each user/collection. Only return the cached array in 'getAll' style functions if this flag is true. individual 'get' functions can still benefit from and contribute to the partial cache.
+
+## 2025-05-17 - Module-level Pre-calculation for Static Data
+**Learning:** Performing (N)$ reductions or string-to-hash conversions inside React components (even with `useMemo`) adds unnecessary overhead when the underlying data is static. While the cost is small per-render, it accumulates across the app and adds complexity to component code.
+
+**Action:** Move all metrics (`totalLessonsCount`) and deterministic seeds (`categorySeeds`) derived from static curriculum data to module-level exports in `lib/data.ts`. This ensures they are calculated exactly once at load time. Additionally, always provide explicit dimensions for critical above-the-fold images to optimize LCP and CLS.

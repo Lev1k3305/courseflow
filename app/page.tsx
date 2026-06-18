@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, memo } from "react";
 import { getAuthService } from "@/lib/firebase";
 import { signInAnonymously } from "firebase/auth";
-import { courses, type Course } from "@/lib/data";
+import { courses, type Course, totalLessonsCount } from "@/lib/data";
 import { Navbar } from "@/components/Navbar";
 import { Bot, Terminal, Code, Smartphone, Sparkles, ArrowRight, Settings, Palette, Monitor, Globe, Layers, BookOpen, Star, Users, Zap, TrendingUp } from "lucide-react";
 import * as motion from "motion/react-client";
@@ -219,7 +219,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <BookOpen size={18} />
-                <span>50+ уроков</span>
+                <span>{totalLessonsCount}+ уроков</span>
               </div>
               <div className="flex items-center gap-2">
                 <Star size={18} className="text-amber-500 fill-amber-500" />
