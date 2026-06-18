@@ -9,71 +9,6 @@ import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
 
-const NoteCard = memo(({ note, course, lesson, index }: { note: any, course: any, lesson: any, index: number }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigator.clipboard.writeText(note.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8, rotate: index % 2 === 0 ? -1.5 : 1.5, scale: 1.02 }}
-      className="bg-white dark:bg-zinc-900 p-8 rounded-[1.5rem] border-b-8 border-r-8 border-zinc-200 dark:border-zinc-800 transition-all relative group flex flex-col h-full shadow-xl hover:shadow-indigo-500/10"
-    >
-      {/* Tape Effect */}
-      <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-28 h-10 bg-indigo-500/20 dark:bg-indigo-500/30 backdrop-blur-md -rotate-3 z-20 pointer-events-none border-x-2 border-indigo-500/20 shadow-sm" />
-
-      <div className="flex items-center justify-between mb-6 relative z-10">
-        <div className="flex flex-col">
-           <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">
-             {course?.title || "Курс"}
-           </span>
-           <div className="flex items-center gap-2 text-[9px] text-zinc-400 font-bold uppercase tracking-tighter">
-             <Calendar size={10} /> {new Date(note.updatedAt?.seconds * 1000).toLocaleDateString() || 'Недавно'}
-           </div>
-        </div>
-        <button
-          onClick={handleCopy}
-          className={`p-2.5 rounded-xl transition-all vk-active ${
-            copied ? "bg-emerald-500 text-white" : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400 hover:text-indigo-500 border border-zinc-100 dark:border-zinc-800"
-          }`}
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-        </button>
-      </div>
-
-      <Link href={`/course/${note.courseId}/lesson/${note.lessonId}`} className="flex-grow group/link relative z-10">
-        <h4 className="font-black text-2xl leading-tight mb-6 group-hover/link:text-indigo-500 transition-colors underline decoration-indigo-500/20 decoration-4 underline-offset-4">
-          {lesson?.title || `Урок ${note.lessonId}`}
-        </h4>
-
-        <div className="relative mb-6 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/30 p-6 border-l-4 border-indigo-500">
-          <p className="text-base font-medium text-zinc-700 dark:text-zinc-300 line-clamp-5 leading-relaxed italic">
-            {note.content}
-          </p>
-        </div>
-      </Link>
-
-      <div className="pt-4 flex items-center justify-between border-t border-dashed border-zinc-200 dark:border-zinc-800 mt-auto relative z-10">
-        <div className="flex items-center gap-2">
-           <GraduationCap size={14} className="text-indigo-500" />
-           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-             Lesson Module {note.lessonId}
-           </span>
-        </div>
-        <ChevronRight size={16} className="text-zinc-300 group-hover:translate-x-1 transition-transform" />
-      </div>
-    </motion.div>
-  );
-});
-NoteCard.displayName = "NoteCard";
 
 // Mock data for progress
 const weeklyStats = [
@@ -117,8 +52,6 @@ export default function ProfilePage() {
   const [completedCount, setCompletedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
-  const [notes, setNotes] = useState<{ id: string; courseId: string; lessonId: number; content: string; updatedAt: any }[]>([]);
-
   const skillProgress = useMemo(() => courseCategories.map(cat => {
     const seed = categorySeeds[cat] || 0;
     const progress = (seed + completedCount * 7) % 101;
@@ -134,16 +67,6 @@ export default function ProfilePage() {
     const initializeProfile = async () => {
       try {
         setIsLoading(true);
-
-        // Fetch notes
-        const fetchNotes = async () => {
-          try {
-            const userNotes = await getAllNotes();
-            setNotes(userNotes);
-          } catch (error) {
-            console.error("[Profile] Failed to fetch notes:", error);
-          }
-        };
 
         // Fetch VK user info
         const fetchVkUser = async () => {
@@ -180,7 +103,7 @@ export default function ProfilePage() {
         };
 
         // Run in parallel
-        await Promise.all([fetchVkUser(), fetchProgress(), fetchNotes()]);
+        await Promise.all([fetchVkUser(), fetchProgress()]);
       } catch (error) {
         console.error("[Profile] Initialization error:", error);
       } finally {
@@ -536,49 +459,6 @@ export default function ProfilePage() {
               </motion.div>
             </div>
 
-            {/* My Notes Section (Full Width Below) */}
-            <div className="md:col-span-12 mt-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-3">
-                  <NotebookPen className="text-indigo-500" />
-                  <h3 className="text-xl font-black uppercase tracking-widest">Мои конспекты</h3>
-                </div>
-                <span className="px-3 py-1 bg-zinc-200 dark:bg-zinc-800 rounded-full text-[10px] font-black uppercase tracking-widest">
-                  {notes.length} записей
-                </span>
-              </div>
-
-              {notes.length === 0 ? (
-                <div className="glass-card p-12 rounded-[3rem] text-center border-dashed border-2">
-                  <NotebookPen className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-                  <p className="text-zinc-500 font-bold">У тебя пока нет конспектов. Начни учиться и записывать важное!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-                  {notes.map((note, index) => {
-                    const course = coursesMap[note.courseId];
-                    const lesson = lessonsMap[`${note.courseId}_${note.lessonId}`];
-
-                    return (
-                      <NoteCard
-                        key={note.id}
-                        note={note}
-                        course={course}
-                        lesson={lesson}
-                        index={index}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-            </div>
           </div>
         )}
       </div>

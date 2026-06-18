@@ -1,0 +1,43 @@
+
+> courseflow-app@0.1.0 dev
+> next dev --port 3002
+
+ ⚠ outputFileTracingRoot should be absolute, using: /app
+   ▲ Next.js 15.5.18
+   - Local:        http://localhost:3002
+   - Network:      http://192.168.0.2:3002
+
+ ✓ Starting...
+ ✓ Ready in 1973ms
+ ○ Compiling / ...
+ ✓ Compiled / in 13.6s (1680 modules)
+ GET / 200 in 16574ms
+ ○ Compiling /course/[courseId] ...
+ ✓ Compiled /course/[courseId] in 1662ms (1694 modules)
+ GET / 200 in 208ms
+ GET /course/ai-mastery 200 in 4833ms
+ GET / 200 in 88ms
+ GET /course/ai-mastery 200 in 107ms
+ ○ Compiling /course/[courseId]/lesson/[lessonId] ...
+ ✓ Compiled /course/[courseId]/lesson/[lessonId] in 1163ms (1699 modules)
+ GET /course/ai-mastery/lesson/1 200 in 2534ms
+ ○ Compiling /profile ...
+ ✓ Compiled /profile in 5.3s (2672 modules)
+ GET /profile 200 in 6193ms
+ GET / 200 in 126ms
+ GET /course/ai-mastery 200 in 160ms
+ GET /course/ai-mastery/lesson/1 200 in 138ms
+ GET /profile 200 in 73ms
+ ✓ Compiled in 2.4s (2678 modules)
+ GET / 200 in 684ms
+ ✓ Compiled /course/[courseId] in 299ms (1473 modules)
+ GET /course/ai-mastery 200 in 909ms
+ GET /course/ai-mastery/lesson/1 200 in 118ms
+ GET /profile 200 in 325ms
+ ✓ Compiled in 597ms (1213 modules)
+ GET / 200 in 132ms
+ GET /course/ai-mastery 200 in 124ms
+ GET /course/ai-mastery/lesson/1 200 in 163ms
+ GET /profile 200 in 66ms
+ ✓ Compiled in 1231ms (2678 modules)
+ ✓ Compiled in 277ms (1213 modules)

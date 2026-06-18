@@ -36,24 +36,24 @@ main {
 
 /* Custom Glassmorphism */
 .glass-card {
-  @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-white/20 dark:border-zinc-800/50 shadow-sm;
+  @apply bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-white/40 dark:border-zinc-800/40 shadow-sm transition-all duration-300;
 }
 
 /* Gradient backgrounds */
 .bg-mesh {
   background-image:
-    radial-gradient(at 0% 0%, var(--color-indigo-500) 0, transparent 50%),
-    radial-gradient(at 50% 0%, var(--color-violet-500) 0, transparent 50%),
-    radial-gradient(at 100% 0%, var(--color-blue-500) 0, transparent 50%);
-  background-size: 100% 400px;
+    radial-gradient(at 0% 0%, var(--color-indigo-500) 0, transparent 60%),
+    radial-gradient(at 50% 0%, var(--color-violet-500) 0, transparent 60%),
+    radial-gradient(at 100% 0%, var(--color-blue-500) 0, transparent 60%);
+  background-size: 100% 600px;
   background-repeat: no-repeat;
 }
 
 .dark .bg-mesh {
   background-image:
-    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(139, 92, 246, 0.15) 0, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.1) 0, transparent 60%),
+    radial-gradient(at 50% 0%, rgba(139, 92, 246, 0.1) 0, transparent 60%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.1) 0, transparent 60%);
 }
 
 /* Typography improvements */

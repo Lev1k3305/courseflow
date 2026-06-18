@@ -129,26 +129,26 @@ export default function CourseDetailsPage() {
           </Link>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="flex-grow">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="px-2.5 py-1 rounded-md bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-wider">
+            <div className="flex-grow text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-6">
+                <span className="px-3 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-widest border border-indigo-200 dark:border-indigo-800">
                   {course.category}
                 </span>
-                <span className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  <Clock size={12} /> 2-4 часа обучения
+                <span className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                  <Clock size={14} /> 2-4 часа обучения
                 </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black mb-4 text-zinc-900 dark:text-white leading-tight">{course.title}</h1>
+              <h1 className="text-4xl md:text-6xl font-black mb-6 text-zinc-900 dark:text-white leading-tight text-balance">{course.title}</h1>
               <h2 className="sr-only">Описание курса</h2>
-              <p className="text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed text-sm">{course.description}</p>
+              <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto md:mx-0 leading-relaxed text-lg font-medium text-balance">{course.description}</p>
             </div>
 
-            <div className="flex flex-col items-end gap-2 shrink-0">
-               <div className="text-right">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">Ваш прогресс</p>
-                  <p className="text-2xl font-black text-zinc-900 dark:text-white">{progressPercent}%</p>
+            <div className="flex flex-col items-center md:items-end gap-4 shrink-0">
+               <div className="text-center md:text-right">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-2">Ваш прогресс</p>
+                  <p className="text-4xl font-black text-zinc-900 dark:text-white">{progressPercent}%</p>
                </div>
-               <div className="w-32 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+               <div className="w-48 h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPercent}%` }}

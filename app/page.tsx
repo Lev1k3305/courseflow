@@ -188,11 +188,11 @@ export default function Home() {
               <span>Платформа №1 для обучения в VK</span>
             </motion.div>
 
-            <h1 className="text-4xl md:text-7xl font-black tracking-tight mb-6 text-balance leading-tight">
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 text-balance leading-[0.9]">
               Твой путь в <span className={`bg-gradient-to-r ${categoryGradients[category]} bg-clip-text text-transparent transition-all duration-500`}>IT-будущее</span> начинается здесь
             </h1>
 
-            <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed text-balance">
+            <p className="text-xl md:text-2xl text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto mb-12 leading-relaxed text-balance font-medium">
               Интерактивные курсы по самым востребованным направлениям. Учись, практикуйся и развивай навыки в формате VK Mini App.
             </p>
 
@@ -231,9 +231,11 @@ export default function Home() {
 
       {/* Course Grid */}
       <section id="courses" className="px-6 pb-20 relative z-10">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
           {filteredCourses.map((course, index) => (
-            <CourseCard key={course.id} course={course} index={index} />
+              <div key={course.id} className="flex justify-center">
+                <CourseCard course={course} index={index} />
+              </div>
           ))}
         </div>
       </section>
