@@ -320,6 +320,55 @@ const KeyTakeaways = memo(({ lesson, onCopyToNotes }: { lesson: any, onCopyToNot
 
 KeyTakeaways.displayName = "KeyTakeaways";
 
+const ExpertExplanation = memo(({ expertNote, onCopyToNotes }: { expertNote?: string, onCopyToNotes: (text: string) => void }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!expertNote) return;
+    onCopyToNotes(`### Инсайт от эксперта:\n${expertNote}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!expertNote) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="mb-12 p-8 rounded-[2.5rem] bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-100 dark:border-amber-900/30 relative overflow-hidden group"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
+
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+            <Sparkles size={20} />
+          </div>
+          <h3 className="text-xl font-black text-amber-900 dark:text-amber-400 m-0">Инсайт от эксперта</h3>
+        </div>
+        <button
+          onClick={handleCopy}
+          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all vk-active shadow-sm border ${
+            copied
+              ? "bg-emerald-500 text-white border-emerald-400"
+              : "bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50 hover:bg-amber-500 hover:text-white"
+          }`}
+        >
+          {copied ? "Добавлено" : "В конспект"}
+        </button>
+      </div>
+
+      <p className="text-amber-800/80 dark:text-amber-300/80 font-medium text-lg leading-relaxed relative z-10 m-0 italic">
+        «{expertNote}»
+      </p>
+    </motion.div>
+  );
+});
+
+ExpertExplanation.displayName = "ExpertExplanation";
+
 const LessonSections = memo(({ sections, onCopyToNotes }: { sections?: any[], onCopyToNotes: (text: string) => void }) => {
   const [copiedStates, setCopiedStates] = useState<Record<number, boolean>>({});
 
@@ -495,6 +544,8 @@ export default function LessonPage() {
           <KeyTakeaways lesson={lesson} onCopyToNotes={copyToNotes} />
           <LessonSections sections={lesson.sections} onCopyToNotes={copyToNotes} />
         </div>
+
+        <ExpertExplanation expertNote={lesson.expertNote} onCopyToNotes={copyToNotes} />
 
         <div id="notes-section">
           <NotesEditor ref={notesEditorRef} courseId={courseId} lessonId={lessonId} />
