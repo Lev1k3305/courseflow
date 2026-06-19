@@ -44,6 +44,223 @@ const skillIcons = [
   <Calendar key="design" size={14} />
 ];
 
+/**
+ * Performance: Memoized achievements section to prevent redundant animations
+ * and layout calculations when parent state changes.
+ */
+const AchievementsSection = memo(() => (
+  <div className="md:col-span-12 space-y-4">
+    <div className="flex items-center gap-3 px-2">
+      <Sparkles className="text-amber-500" size={20} />
+      <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Достижения</h3>
+    </div>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {achievements.map((achievement, idx) => (
+        <motion.div
+          key={achievement.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: idx * 0.1 }}
+          whileHover={{ scale: 1.05, y: -5 }}
+          className="glass-card p-6 rounded-[2rem] text-center group cursor-help relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-indigo-500 mx-auto mb-4 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm group-hover:shadow-indigo-500/20 group-hover:rotate-6">
+            {achievement.icon}
+          </div>
+          <h4 className="text-[11px] font-black uppercase tracking-tight mb-1">{achievement.title}</h4>
+          <p className="text-[9px] text-zinc-400 font-bold leading-tight">{achievement.description}</p>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+));
+
+AchievementsSection.displayName = "AchievementsSection";
+
+/**
+ * Performance: Memoized holographic ID card.
+ * Prevents redundant shimmer animations and filter calculations.
+ */
+const MasteryPassport = memo(({ userId }: { userId: number | null }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.4 }}
+    className="p-8 rounded-[3rem] bg-gradient-to-br from-indigo-900 via-zinc-900 to-violet-900 text-white shadow-2xl relative overflow-hidden border border-white/10 md:col-span-4 flex flex-col min-h-[400px]"
+  >
+    <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl" />
+    <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-24 -mb-24 blur-3xl animate-pulse" />
+
+    <div className="relative z-10 h-full flex flex-col justify-between">
+      {/* Holographic shimmer effect */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <motion.div
+          animate={{
+            x: ["-100%", "200%"]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+        />
+      </div>
+
+      <div className="flex items-center justify-between mb-10 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
+            <Sparkles size={20} className="text-indigo-400 animate-pulse" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-indigo-400/80">Digital Credential</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Mastery Passport</span>
+          </div>
+        </div>
+        <div className="w-14 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
+           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+           <div className="w-7 h-5 bg-indigo-500/30 rounded-md flex items-center justify-center border border-white/10">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
+           </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 relative z-10">
+        <div>
+          <div className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-2 opacity-60">Passport Serial ID</div>
+          <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 group-hover:border-indigo-500/50 transition-colors">
+            <div className="font-mono text-2xl tracking-[0.3em] font-black text-white/95">
+              {userId ? `CF-${userId}` : "CF-000000"}
+            </div>
+          </div>
+        </div>
+        <div className="pt-6 flex items-center justify-between border-t border-white/10">
+           <div>
+              <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Auth Status</div>
+              <div className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/30">Verified Expert</div>
+           </div>
+           <div className="text-right">
+              <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Valid Thru</div>
+              <div className="text-[10px] font-black uppercase tracking-widest">PERMANENT</div>
+           </div>
+        </div>
+      </div>
+    </div>
+  </motion.div>
+));
+
+MasteryPassport.displayName = "MasteryPassport";
+
+/**
+ * Performance: Memoized skill map component to avoid re-calculating progress bars.
+ */
+const SkillMap = memo(({ skillProgress }: { skillProgress: { name: string, progress: number }[] }) => (
+  <motion.div
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    className="glass-card p-8 rounded-[3rem] relative overflow-hidden md:col-span-4 row-span-2"
+  >
+    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+
+    <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-3 relative z-10">
+      <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20">
+        <Target size={16} />
+      </div>
+      Карта навыков
+    </h3>
+
+    <div className="space-y-6 relative z-10">
+      {skillProgress.map((skill, i) => {
+        return (
+          <div key={i} className="space-y-3">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                 <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${
+                   i === 0 ? 'bg-indigo-500/10 text-indigo-500' :
+                   i === 1 ? 'bg-emerald-500/10 text-emerald-500' :
+                   i === 2 ? 'bg-amber-500/10 text-amber-500' :
+                   i === 3 ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'
+                 }`}>
+                   {skillIcons[i % skillIcons.length]}
+                 </div>
+                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{skill.name}</span>
+              </div>
+              <span className="text-[11px] font-black tabular-nums">{skill.progress}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${skill.progress}%` }}
+                transition={{ delay: i * 0.1, duration: 1.5, ease: "circOut" }}
+                className={`h-full rounded-full shadow-[0_0_12px_rgba(99,102,241,0.3)] ${
+                  i === 0 ? 'bg-indigo-500' :
+                  i === 1 ? 'bg-emerald-500' :
+                  i === 2 ? 'bg-amber-500' :
+                  i === 3 ? 'bg-rose-500' : 'bg-violet-500'
+                }`}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <div className="mt-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
+      <div className="flex items-center gap-3 mb-2">
+        <Trophy className="text-indigo-600 dark:text-indigo-400" size={16} />
+        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900 dark:text-indigo-400">Спецпредложение</span>
+      </div>
+      <p className="text-[11px] text-indigo-800/70 dark:text-indigo-300/70 leading-relaxed font-medium">
+        Заверши ещё 2 урока по ИИ, чтобы получить значок «Архитектор Промптов»!
+      </p>
+    </div>
+  </motion.div>
+));
+
+SkillMap.displayName = "SkillMap";
+
+/**
+ * Performance: Memoized activity chart.
+ * Recharts SVG rendering is expensive, so we isolate it here.
+ */
+const ActivityChart = memo(() => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className="glass-card p-8 md:p-10 rounded-[3rem] overflow-hidden relative md:col-span-12"
+  >
+    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+      <BarChart3 size={120} />
+    </div>
+    <div className="flex items-center gap-3 mb-8 relative z-10">
+      <div className="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center">
+        <Clock size={16} />
+      </div>
+      <h3 className="text-sm font-black uppercase tracking-widest">Недельная активность</h3>
+    </div>
+    <div className="h-64 relative z-10">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={weeklyStats}>
+          <defs>
+            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#6366f1" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} opacity={0.1} />
+          <XAxis dataKey="day" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+          <Tooltip
+            cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
+            contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '16px', color: '#fff', fontSize: '12px' }}
+            itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+          />
+          <Bar dataKey="progress" fill="url(#barGradient)" radius={[6, 6, 6, 6]} barSize={24} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </motion.div>
+));
+
+ActivityChart.displayName = "ActivityChart";
+
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState("Имя");
   const [lastName, setLastName] = useState("Пользователь");
@@ -68,42 +285,29 @@ export default function ProfilePage() {
       try {
         setIsLoading(true);
 
-        // Fetch VK user info
-        const fetchVkUser = async () => {
-          try {
-            const userInfo: VKUserInfo | null = await vkBridgeManager.getUserInfo();
-            
-            if (userInfo) {
-              setFirstName(userInfo.first_name || "Имя");
-              setLastName(userInfo.last_name || "Пользователь");
-              
-              if (userInfo.photo_200) {
-                setAvatarUrl(userInfo.photo_200);
-                console.log("[Profile] VK user info loaded successfully");
-              }
-            } else {
-              console.log("[Profile] No VK user info available");
-            }
-          } catch (error) {
-            console.error("[Profile] Failed to get VK user info:", error);
-            // App continues with default values
-          }
-        };
-
-        // Fetch progress
-        const fetchProgress = async () => {
-          try {
-            const count = await getAllCompletedLessons(courses);
-            setCompletedCount(count);
-            console.log("[Profile] Completed lessons count:", count);
-          } catch (error) {
-            console.error("[Profile] Failed to fetch progress:", error);
-            setCompletedCount(0);
-          }
-        };
-
-        // Run in parallel
-        await Promise.all([fetchVkUser(), fetchProgress()]);
+        // Run in parallel with a hard timeout to ensure UI becomes interactive
+        // even if platform bridge calls hang in some environments.
+        await Promise.race([
+          Promise.all([
+            (async () => {
+              try {
+                const userInfo: VKUserInfo | null = await vkBridgeManager.getUserInfo();
+                if (userInfo) {
+                  setFirstName(userInfo.first_name || "Имя");
+                  setLastName(userInfo.last_name || "Пользователь");
+                  if (userInfo.photo_200) setAvatarUrl(userInfo.photo_200);
+                }
+              } catch (e) { console.error(e); }
+            })(),
+            (async () => {
+              try {
+                const count = await getAllCompletedLessons(courses);
+                setCompletedCount(count);
+              } catch (e) { console.error(e); }
+            })()
+          ]),
+          new Promise(resolve => setTimeout(resolve, 5000))
+        ]);
       } catch (error) {
         console.error("[Profile] Initialization error:", error);
       } finally {
@@ -205,95 +409,9 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
 
-              {/* ID Card - Sidebar Bento Span */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="p-8 rounded-[3rem] bg-gradient-to-br from-indigo-900 via-zinc-900 to-violet-900 text-white shadow-2xl relative overflow-hidden border border-white/10 md:col-span-4 flex flex-col min-h-[400px]"
-              >
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-24 -mb-24 blur-3xl animate-pulse" />
+              <MasteryPassport userId={userId} />
 
-                <div className="relative z-10 h-full flex flex-col justify-between">
-                  {/* Holographic shimmer effect */}
-                  <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-                    <motion.div
-                      animate={{
-                        x: ["-100%", "200%"]
-                      }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between mb-10 relative z-10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
-                        <Sparkles size={20} className="text-indigo-400 animate-pulse" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-indigo-400/80">Digital Credential</span>
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Mastery Passport</span>
-                      </div>
-                    </div>
-                    <div className="w-14 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
-                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                       <div className="w-7 h-5 bg-indigo-500/30 rounded-md flex items-center justify-center border border-white/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
-                       </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6 relative z-10">
-                    <div>
-                      <div className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-2 opacity-60">Passport Serial ID</div>
-                      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 group-hover:border-indigo-500/50 transition-colors">
-                        <div className="font-mono text-2xl tracking-[0.3em] font-black text-white/95">
-                          {userId ? `CF-${userId}` : "CF-000000"}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pt-6 flex items-center justify-between border-t border-white/10">
-                       <div>
-                          <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Auth Status</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/30">Verified Expert</div>
-                       </div>
-                       <div className="text-right">
-                          <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Valid Thru</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest">PERMANENT</div>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Achievements Section - Large Bento Span */}
-              <div className="md:col-span-12 space-y-4">
-                <div className="flex items-center gap-3 px-2">
-                  <Sparkles className="text-amber-500" size={20} />
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Достижения</h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {achievements.map((achievement, idx) => (
-                    <motion.div
-                      key={achievement.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      whileHover={{ scale: 1.05, y: -5 }}
-                      className="glass-card p-6 rounded-[2rem] text-center group cursor-help relative overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-indigo-500 mx-auto mb-4 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm group-hover:shadow-indigo-500/20 group-hover:rotate-6">
-                        {achievement.icon}
-                      </div>
-                      <h4 className="text-[11px] font-black uppercase tracking-tight mb-1">{achievement.title}</h4>
-                      <p className="text-[9px] text-zinc-400 font-bold leading-tight">{achievement.description}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+              <AchievementsSection />
 
               {/* Dashboard Stats Section - Refined Bento Grid - Inside the main container */}
               <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -325,67 +443,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
 
-                {/* Skill Map - Bento Span */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="glass-card p-8 rounded-[3rem] relative overflow-hidden md:col-span-4 row-span-2"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
-
-                  <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-3 relative z-10">
-                    <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20">
-                      <Target size={16} />
-                    </div>
-                    Карта навыков
-                  </h3>
-
-                  <div className="space-y-6 relative z-10">
-                    {skillProgress.map((skill, i) => {
-                      return (
-                        <div key={i} className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                               <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ${
-                                 i === 0 ? 'bg-indigo-500/10 text-indigo-500' :
-                                 i === 1 ? 'bg-emerald-500/10 text-emerald-500' :
-                                 i === 2 ? 'bg-amber-500/10 text-amber-500' :
-                                 i === 3 ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'
-                               }`}>
-                                 {skillIcons[i % skillIcons.length]}
-                               </div>
-                               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{skill.name}</span>
-                            </div>
-                            <span className="text-[11px] font-black tabular-nums">{skill.progress}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${skill.progress}%` }}
-                              transition={{ delay: i * 0.1, duration: 1.5, ease: "circOut" }}
-                              className={`h-full rounded-full shadow-[0_0_12px_rgba(99,102,241,0.3)] ${
-                                i === 0 ? 'bg-indigo-500' :
-                                i === 1 ? 'bg-emerald-500' :
-                                i === 2 ? 'bg-amber-500' :
-                                i === 3 ? 'bg-rose-500' : 'bg-violet-500'
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-8 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Trophy className="text-indigo-600 dark:text-indigo-400" size={16} />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900 dark:text-indigo-400">Спецпредложение</span>
-                    </div>
-                    <p className="text-[11px] text-indigo-800/70 dark:text-indigo-300/70 leading-relaxed font-medium">
-                      Заверши ещё 2 урока по ИИ, чтобы получить значок «Архитектор Промптов»!
-                    </p>
-                  </div>
-                </motion.div>
+                <SkillMap skillProgress={skillProgress} />
 
                 {/* Learning Pulse Card */}
                 <motion.div
@@ -420,43 +478,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Weekly Activity Chart - Bento Span */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="glass-card p-8 md:p-10 rounded-[3rem] overflow-hidden relative md:col-span-12"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                  <BarChart3 size={120} />
-                </div>
-                <div className="flex items-center gap-3 mb-8 relative z-10">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center">
-                    <Clock size={16} />
-                  </div>
-                  <h3 className="text-sm font-black uppercase tracking-widest">Недельная активность</h3>
-                </div>
-                <div className="h-64 relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={weeklyStats}>
-                      <defs>
-                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" />
-                          <stop offset="100%" stopColor="#a855f7" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} opacity={0.1} />
-                      <XAxis dataKey="day" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
-                        contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '16px', color: '#fff', fontSize: '12px' }}
-                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                      />
-                      <Bar dataKey="progress" fill="url(#barGradient)" radius={[6, 6, 6, 6]} barSize={24} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </motion.div>
+              <ActivityChart />
             </div>
 
           </div>
