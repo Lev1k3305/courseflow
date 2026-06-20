@@ -3,23 +3,12 @@
 import { useEffect, useState, useMemo, memo } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target, Copy, Check, TrendingUp, Sparkles, Star } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
-import { getAllCompletedLessons, getAllNotes } from "@/lib/firebase";
+import { getAllCompletedLessons, getAllNotes, getDetailedProgress, getUserStreak, type DetailedProgress, getAuthService } from "@/lib/firebase";
 import { courses, coursesMap, lessonsMap, totalLessonsCount, courseCategories, categorySeeds } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
 
-
-// Mock data for progress
-const weeklyStats = [
-  { day: "Пн", progress: 45 },
-  { day: "Вт", progress: 70 },
-  { day: "Ср", progress: 30 },
-  { day: "Чт", progress: 90 },
-  { day: "Пт", progress: 60 },
-  { day: "Сб", progress: 85 },
-  { day: "Вс", progress: 50 },
-];
 
 const noteColors = [
   'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
@@ -44,6 +33,14 @@ const skillIcons = [
   <Calendar key="design" size={14} />
 ];
 
+function getPlural(n: number, singular: string, few: string, many: string) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return singular;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState("Имя");
   const [lastName, setLastName] = useState("Пользователь");
@@ -52,7 +49,19 @@ export default function ProfilePage() {
   const [completedCount, setCompletedCount] = useState(0);
   const [notes, setNotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [weeklyData, setWeeklyData] = useState<{ day: string, progress: number }[]>([]);
+
+  const dynamicAchievements = useMemo(() => {
+    const list = [...achievements];
+    if (notes.length >= 5) {
+      // already in mock, but we can make it real
+    }
+    // We could filter or mark them as completed here
+    return list;
+  }, [notes.length, completedCount]);
+
   const skillProgress = useMemo(() => courseCategories.map(cat => {
     const seed = categorySeeds[cat] || 0;
     const progress = (seed + completedCount * 7) % 101;
@@ -63,9 +72,19 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setMounted(true);
-    setUserId(Math.floor(Math.random() * 900000) + 100000);
 
     const initializeProfile = async () => {
+      const auth = getAuthService();
+      if (auth.currentUser) {
+        // Generate stable numeric ID from Firebase UID
+        let hash = 0;
+        for (let i = 0; i < auth.currentUser.uid.length; i++) {
+          hash = (hash << 5) - hash + auth.currentUser.uid.charCodeAt(i);
+          hash |= 0;
+        }
+        setUserId(Math.abs(hash).toString().substring(0, 6));
+      }
+
       try {
         setIsLoading(true);
 
@@ -91,12 +110,41 @@ export default function ProfilePage() {
           }
         };
 
-        // Fetch progress
+        // Fetch progress and analytics
         const fetchProgress = async () => {
           try {
-            const count = await getAllCompletedLessons(courses);
+            const detailed = await getDetailedProgress(courses);
+            const count = detailed.length;
+            const userStreak = await getUserStreak(courses, detailed);
+
             setCompletedCount(count);
-            console.log("[Profile] Completed lessons count:", count);
+            setStreak(userStreak);
+
+            // Process weekly stats
+            const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() - (6 - i));
+              return {
+                date: new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
+                day: days[d.getDay()],
+                count: 0
+              };
+            });
+
+            detailed.forEach(p => {
+              const pDate = new Date(p.timestamp.getFullYear(), p.timestamp.getMonth(), p.timestamp.getDate()).getTime();
+              const foundDay = last7Days.find(d => d.date === pDate);
+              if (foundDay) foundDay.count++;
+            });
+
+            // Map to percentage (max 5 lessons a day for 100% in chart)
+            setWeeklyData(last7Days.map(d => ({
+              day: d.day,
+              progress: Math.min(100, d.count * 20)
+            })));
+
+            console.log("[Profile] Analytics loaded successfully");
           } catch (error) {
             console.error("[Profile] Failed to fetch progress:", error);
             setCompletedCount(0);
@@ -205,7 +253,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-center">
                         <div className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Streak</div>
-                        <div className="text-2xl font-black text-indigo-600">5</div>
+                        <div className="text-2xl font-black text-indigo-600">{streak}</div>
                       </div>
                       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-center">
                         <div className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Rating</div>
@@ -286,23 +334,40 @@ export default function ProfilePage() {
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Достижения</h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {achievements.map((achievement, idx) => (
+                  {dynamicAchievements.map((achievement, idx) => {
+                    const isUnlocked =
+                      (achievement.id === 'note-taker' && notes.length >= 1) ||
+                      (achievement.id === 'course-pioneer' && completedCount >= 10) ||
+                      (achievement.id === 'streak-king' && streak >= 3);
+
+                    return (
                     <motion.div
                       key={achievement.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
                       whileHover={{ scale: 1.05, y: -5 }}
-                      className="glass-card p-6 rounded-[2rem] text-center group cursor-help relative overflow-hidden"
+                      className={`glass-card p-6 rounded-[2rem] text-center group cursor-help relative overflow-hidden transition-all duration-500 ${!isUnlocked ? 'opacity-40 grayscale' : ''}`}
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-indigo-500 mx-auto mb-4 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm group-hover:shadow-indigo-500/20 group-hover:rotate-6">
+                      <div className={`w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-all shadow-sm group-hover:rotate-6 ${
+                        isUnlocked
+                          ? 'bg-zinc-100 dark:bg-zinc-800 text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white group-hover:shadow-indigo-500/20'
+                          : 'bg-zinc-100/50 dark:bg-zinc-800/50 text-zinc-400'
+                      }`}>
                         {achievement.icon}
                       </div>
                       <h4 className="text-[11px] font-black uppercase tracking-tight mb-1">{achievement.title}</h4>
                       <p className="text-[9px] text-zinc-400 font-bold leading-tight">{achievement.description}</p>
+                      {!isUnlocked && (
+                        <div className="absolute top-2 right-2">
+                           <div className="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+                              <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                           </div>
+                        </div>
+                      )}
                     </motion.div>
-                  ))}
+                  );})}
                 </div>
               </div>
 
@@ -411,8 +476,10 @@ export default function ProfilePage() {
                    </div>
                    <div>
                       <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Ударный режим</div>
-                      <div className="text-4xl font-black tracking-tighter">5 Дней</div>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mt-2">Ты в огне! 🔥</p>
+                      <div className="text-4xl font-black tracking-tighter">{streak} {getPlural(streak, 'День', 'Дня', 'Дней')}</div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mt-2">
+                        {streak > 0 ? "Ты в огне! 🔥" : "Начни учиться сегодня!"}
+                      </p>
                    </div>
                 </motion.div>
 
@@ -491,7 +558,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="h-64 relative z-10">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={weeklyStats}>
+                    <BarChart data={weeklyData}>
                       <defs>
                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#6366f1" />

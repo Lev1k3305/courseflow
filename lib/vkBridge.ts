@@ -53,18 +53,19 @@ class VKBridgeManager {
    * Check if VK Bridge is available in window
    */
   private isVKBridgeAvailable(): boolean {
-    // In development (non-production), mock VK Bridge availability to avoid errors.
-    if (process.env.NODE_ENV !== 'production') {
-      this.log('Mocking VK Bridge availability in development mode');
-      return true;
-    }
     if (typeof window === 'undefined') {
-      this.log('Window object not available');
       return false;
     }
 
-    const available = !!(window as any).VKBridge;
+    // Checking for both possible names used by VK Bridge
+    const available = !!(window as any).vkBridge || !!(window as any).VKBridge;
+
     if (!available) {
+      // In development (non-production), mock VK Bridge availability to avoid errors.
+      if (process.env.NODE_ENV !== 'production') {
+        this.log('Mocking VK Bridge availability in development mode');
+        return true;
+      }
       this.log('VK Bridge not available in window');
     }
     return available;
@@ -130,7 +131,7 @@ class VKBridgeManager {
   }
 
   /**
-   * Get user info with error handling and caching
+   * Get user info with error handling, caching, and timeout
    */
   async getUserInfo(): Promise<VKUserInfo | null> {
     if (this.userInfoPromise) {
@@ -146,7 +147,14 @@ class VKBridgeManager {
         }
 
         this.log('Fetching VK user info');
-        const userInfo = await bridge.send('VKWebAppGetUserInfo');
+
+        // Use Promise.race for timeout resilience
+        const userInfo = await Promise.race([
+          bridge.send('VKWebAppGetUserInfo'),
+          new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error('VKBridge timeout')), 5000)
+          )
+        ]);
 
         this.log('User info fetched successfully', {
           id: userInfo?.id,

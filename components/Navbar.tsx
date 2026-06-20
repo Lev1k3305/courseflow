@@ -1,11 +1,11 @@
 "use client";
 
-import { BrainCircuit, Sun, Moon, User, LayoutGrid, LogOut } from "lucide-react";
+import { BrainCircuit, Sun, Moon, User, LayoutGrid, LogOut, Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
-import { signOut } from "firebase/auth";
+import { signOut, signInAnonymously } from "firebase/auth";
 import { getAuthService } from "@/lib/firebase";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
 
@@ -14,6 +14,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -50,6 +51,17 @@ export function Navbar() {
   }, [user]);
 
   if (!mounted) return null;
+
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      await signInAnonymously(getAuthService());
+    } catch (error) {
+      console.error("[Navbar] Login failed:", error);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   const navLinks = (
     <>
@@ -95,9 +107,14 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              <Link href="/profile" className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors">
+              <button
+                onClick={handleLogin}
+                disabled={isLoggingIn}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-colors disabled:opacity-50"
+              >
+                {isLoggingIn ? <Loader2 size={16} className="animate-spin" /> : null}
                 Войти
-              </Link>
+              </button>
             )}
             <button
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
