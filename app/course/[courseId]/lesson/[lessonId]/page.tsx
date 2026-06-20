@@ -7,30 +7,7 @@ import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, C
 import Link from "next/link";
 import { saveProgress, getProgress } from "@/lib/firebase";
 import * as motion from "motion/react-client";
-
-const NoteReminder = memo(() => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    whileInView={{ opacity: 1, scale: 1 }}
-    viewport={{ once: true }}
-    className="mb-16 p-10 rounded-[3rem] bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent border-2 border-indigo-100 dark:border-indigo-900/30 text-center relative overflow-hidden"
-  >
-    <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -ml-16 -mt-16" />
-    <div className="absolute bottom-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl -mr-16 -mb-16" />
-
-    <div className="relative z-10">
-      <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-500/20 rotate-3">
-        <PenLine size={32} />
-      </div>
-      <h3 className="text-2xl font-black text-zinc-900 dark:text-white mb-4">Важный совет</h3>
-      <p className="text-zinc-600 dark:text-zinc-400 text-lg font-medium leading-relaxed max-w-lg mx-auto">
-        Для того чтобы вы все запомнили лучше всего будет законспектировать урок
-      </p>
-    </div>
-  </motion.div>
-));
-
-NoteReminder.displayName = "NoteReminder";
+import { NoteEditor } from "@/components/NoteEditor";
 
 /**
  * Isolated Final Task section to prevent full-page re-renders when typing the answer.
@@ -315,7 +292,9 @@ export default function LessonPage() {
           <ExpertExplanation expertNote={lesson.expertNote} />
         </div>
 
-        <NoteReminder />
+        <div className="max-w-3xl mx-auto">
+          <NoteEditor courseId={courseId} lessonId={lessonId} />
+        </div>
 
         {lesson.quiz && lesson.quiz.length > 0 && (
           <div className="mb-20 max-w-3xl mx-auto">
