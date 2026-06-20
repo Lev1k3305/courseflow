@@ -254,6 +254,102 @@ export async function getAllCompletedLessons(coursesList: { id: string }[]) {
   return results.reduce((acc, current) => acc + current.length, 0);
 }
 
+export interface DetailedProgress {
+  courseId: string;
+  lessonId: number;
+  timestamp: Date;
+}
+
+/**
+ * Fetches all completed lessons with their timestamps for detailed activity tracking.
+ */
+export async function getDetailedProgress(coursesList: { id: string }[]): Promise<DetailedProgress[]> {
+  const auth = getAuthService();
+  if (!auth.currentUser) return [];
+  const userId = auth.currentUser.uid;
+  const db = getDbService();
+
+  try {
+    const allDetailedProgress: DetailedProgress[] = [];
+
+    const fetchPromises = coursesList.map(async (course) => {
+      const courseId = course.id;
+      const lessonsRef = collection(db, `userProgress/${userId}/courses/${courseId}/lessons`);
+      const lessonsSnap = await getDocs(lessonsRef);
+
+      return lessonsSnap.docs.map(lessonDoc => {
+        const data = lessonDoc.data();
+        return {
+          courseId,
+          lessonId: parseInt(lessonDoc.id),
+          timestamp: data.timestamp?.toDate() || new Date()
+        };
+      });
+    });
+
+    const results = await Promise.all(fetchPromises);
+    results.forEach(res => allDetailedProgress.push(...res));
+
+    return allDetailedProgress.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  } catch (error) {
+    console.error('Error fetching detailed progress', error);
+    return [];
+  }
+}
+
+/**
+ * Calculates the current daily learning streak.
+ * Accepts optional pre-fetched progress data to avoid redundant Firestore reads.
+ */
+export async function getUserStreak(coursesList: { id: string }[], progressData?: DetailedProgress[]): Promise<number> {
+  const progress = progressData || await getDetailedProgress(coursesList);
+  if (progress.length === 0) return 0;
+
+  // Extract unique dates of activity normalized to start of day
+  const activeDates = new Set(
+    progress.map(p => {
+      const d = p.timestamp;
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    })
+  );
+
+  const sortedDates = Array.from(activeDates).sort((a, b) => b - a);
+
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+
+  // Last activity must be today or yesterday to continue streak
+  const lastActivity = sortedDates[0];
+  const msInDay = 86400000;
+
+  // Use a small buffer to handle potential DST offsets if comparing raw timestamps,
+  // but since we normalized to local midnight, the difference should be 23, 24, or 25 hours.
+  // A safer check is to see if the date of sortedDates[0] is >= today - 1 day.
+  const oneDayAgo = todayStart - msInDay;
+
+  if (lastActivity < oneDayAgo) {
+    return 0;
+  }
+
+  let streak = 1;
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = new Date(sortedDates[i-1]);
+    const currDate = new Date(sortedDates[i]);
+
+    // Calculate expected previous day
+    const expectedPrev = new Date(prevDate);
+    expectedPrev.setDate(expectedPrev.getDate() - 1);
+
+    if (currDate.getTime() === expectedPrev.getTime()) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 /**
  * Saves a note for a specific lesson.
  * Optimized with optimistic cache updates.
