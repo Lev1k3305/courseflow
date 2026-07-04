@@ -67,7 +67,7 @@
    ```
 
 4. **Откройте приложение**:
-   Перейдите по адресу **[http://localhost:3000](http://localhost:3000)** в вашем браузере.
+   Перейдите по адресу **[https://courseflow-sable.vercel.app/](https://courseflow-sable.vercel.app/))** в вашем браузере.
 
 ---
 
