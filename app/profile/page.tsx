@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, memo } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target, Copy, Check, TrendingUp, Sparkles, Star } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
-import { getAllCompletedLessons, getAllNotes, type Note } from "@/lib/firebase";
+import { getAllCompletedLessons, getAllNotes, type Note, type DetailedProgress, getAuthService, getDetailedProgress, getUserStreak } from "@/lib/firebase";
 import { courses, coursesMap, lessonsMap, totalLessonsCount, courseCategories, categorySeeds } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
@@ -41,6 +41,8 @@ function getPlural(n: number, singular: string, few: string, many: string) {
   return many;
 }
 
+const dynamicAchievements = achievements;
+
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState("Имя");
   const [lastName, setLastName] = useState("Пользователь");
@@ -49,8 +51,10 @@ export default function ProfilePage() {
   const [completedCount, setCompletedCount] = useState(0);
   const [notes, setNotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userNotes, setUserNotes] = useState<Note[]>([]);
+  const [streak, setStreak] = useState<number>(0);
+  const [weeklyData, setWeeklyData] = useState<{ day: string; progress: number }[]>([]);
 
   const skillProgress = useMemo(() => courseCategories.map(cat => {
     const seed = categorySeeds[cat] || 0;
@@ -130,7 +134,7 @@ export default function ProfilePage() {
               };
             });
 
-            detailed.forEach(p => {
+            detailed.forEach((p: DetailedProgress) => {
               const pDate = new Date(p.timestamp.getFullYear(), p.timestamp.getMonth(), p.timestamp.getDate()).getTime();
               const foundDay = last7Days.find(d => d.date === pDate);
               if (foundDay) foundDay.count++;
