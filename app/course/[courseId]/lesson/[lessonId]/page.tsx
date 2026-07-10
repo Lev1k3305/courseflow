@@ -3,11 +3,91 @@
 import { useEffect, useState, memo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { coursesMap, lessonsMap } from "@/lib/data";
-import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Check, BookOpen, Lightbulb, Trophy, ChevronRight, MessageSquare, Target, PenLine, Sparkles, NotebookPen } from "lucide-react";
 import Link from "next/link";
-import { saveProgress, getProgress } from "@/lib/firebase";
+import { saveProgress, getProgress, saveNote, getNote } from "@/lib/firebase";
 import * as motion from "motion/react-client";
-import { NoteEditor } from "@/components/NoteEditor";
+
+const NoteEditor = memo(({ courseId, lessonId }: { courseId: string, lessonId: number }) => {
+  const [note, setNote] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  useEffect(() => {
+    async function loadNote() {
+      const savedNote = await getNote(courseId, lessonId);
+      setNote(savedNote);
+    }
+    loadNote();
+  }, [courseId, lessonId]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await saveNote(courseId, lessonId, note);
+    setIsSaving(false);
+    setLastSaved(new Date());
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      className="mb-16 p-8 md:p-10 rounded-[3rem] bg-white dark:bg-zinc-900 border-2 border-indigo-100 dark:border-indigo-900/30 shadow-xl relative overflow-hidden"
+    >
+      <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none text-indigo-500">
+        <PenLine size={120} />
+      </div>
+
+      <div className="relative z-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 rotate-3">
+              <NotebookPen size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-zinc-900 dark:text-white">Твой конспект</h3>
+              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Записывай важные мысли</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {lastSaved && (
+              <motion.span
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1"
+              >
+                <Check size={12} /> Сохранено
+              </motion.span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all vk-active flex items-center gap-2 disabled:opacity-50"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Сохранение...
+                </>
+              ) : "Сохранить"}
+            </button>
+          </div>
+        </div>
+
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full p-6 rounded-2xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 min-h-[200px] text-lg font-medium leading-relaxed"
+          placeholder="Начни писать свой конспект здесь..."
+        />
+      </div>
+    </motion.div>
+  );
+});
+
+NoteEditor.displayName = "NoteEditor";
 
 /**
  * Isolated Final Task section to prevent full-page re-renders when typing the answer.
@@ -292,9 +372,7 @@ export default function LessonPage() {
           <ExpertExplanation expertNote={lesson.expertNote} />
         </div>
 
-        <div className="max-w-3xl mx-auto">
-          <NoteEditor courseId={courseId} lessonId={lessonId} />
-        </div>
+        <NoteEditor courseId={courseId} lessonId={lessonId} />
 
         {lesson.quiz && lesson.quiz.length > 0 && (
           <div className="mb-20 max-w-3xl mx-auto">

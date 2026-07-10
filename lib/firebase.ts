@@ -24,7 +24,7 @@ const userCourseProgressCache: Record<string, Record<string, CourseCacheEntry>> 
  * Scoped by user ID to prevent data leakage.
  * Format: { userId: Note[] }
  */
-interface Note {
+export interface Note {
   id: string;
   courseId: string;
   lessonId: number;

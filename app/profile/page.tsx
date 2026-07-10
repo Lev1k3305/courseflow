@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, memo } from "react";
 import { ArrowLeft, Trophy, Clock, BarChart3, GraduationCap, Calendar, NotebookPen, ChevronRight, Loader2, Target, Copy, Check, TrendingUp, Sparkles, Star } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid } from "recharts";
-import { getAllCompletedLessons, getAllNotes, getDetailedProgress, getUserStreak, type DetailedProgress, getAuthService } from "@/lib/firebase";
+import { getAllCompletedLessons, getAllNotes, type Note } from "@/lib/firebase";
 import { courses, coursesMap, lessonsMap, totalLessonsCount, courseCategories, categorySeeds } from "@/lib/data";
 import Link from "next/link";
 import * as motion from "motion/react-client";
@@ -49,18 +49,8 @@ export default function ProfilePage() {
   const [completedCount, setCompletedCount] = useState(0);
   const [notes, setNotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [streak, setStreak] = useState(0);
-  const [weeklyData, setWeeklyData] = useState<{ day: string, progress: number }[]>([]);
-
-  const dynamicAchievements = useMemo(() => {
-    const list = [...achievements];
-    if (notes.length >= 5) {
-      // already in mock, but we can make it real
-    }
-    // We could filter or mark them as completed here
-    return list;
-  }, [notes.length, completedCount]);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [userNotes, setUserNotes] = useState<Note[]>([]);
 
   const skillProgress = useMemo(() => courseCategories.map(cat => {
     const seed = categorySeeds[cat] || 0;
@@ -88,10 +78,18 @@ export default function ProfilePage() {
       try {
         setIsLoading(true);
 
-        // Fetch VK user info
+        // Fetch VK user info with timeout
         const fetchVkUser = async () => {
           try {
-            const userInfo: VKUserInfo | null = await vkBridgeManager.getUserInfo();
+            // timeout promise
+            const timeoutPromise = new Promise<null>((_, reject) =>
+              setTimeout(() => reject(new Error('Timeout')), 5000)
+            );
+
+            const userInfo: VKUserInfo | null = await Promise.race([
+              vkBridgeManager.getUserInfo(),
+              timeoutPromise
+            ]) as VKUserInfo | null;
             
             if (userInfo) {
               setFirstName(userInfo.first_name || "Имя");
@@ -154,8 +152,9 @@ export default function ProfilePage() {
         // Fetch notes
         const fetchNotes = async () => {
           try {
-            const userNotes = await getAllNotes();
-            setNotes(userNotes);
+            const notes = await getAllNotes();
+            setUserNotes(notes);
+            console.log("[Profile] Notes loaded:", notes.length);
           } catch (error) {
             console.error("[Profile] Failed to fetch notes:", error);
           }
@@ -269,10 +268,11 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="p-8 rounded-[3rem] bg-gradient-to-br from-indigo-900 via-zinc-900 to-violet-900 text-white shadow-2xl relative overflow-hidden border border-white/10 md:col-span-4 flex flex-col min-h-[400px] group"
+                className="p-8 rounded-[3rem] bg-zinc-900 text-white shadow-2xl relative overflow-hidden border border-white/10 md:col-span-4 flex flex-col min-h-[400px] group"
               >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-[80px] group-hover:bg-indigo-500/20 transition-colors duration-1000" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/20 rounded-full -ml-32 -mb-32 blur-[80px] animate-pulse" />
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/40 via-zinc-900 to-violet-600/40 opacity-90 group-hover:opacity-100 transition-opacity duration-1000" />
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-24 -mb-24 blur-3xl animate-pulse" />
 
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   {/* Holographic shimmer effect */}
@@ -307,8 +307,8 @@ export default function ProfilePage() {
                   <div className="space-y-6 relative z-10">
                     <div>
                       <div className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-2 opacity-60">Passport Serial ID</div>
-                      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 group-hover:border-indigo-400/50 transition-colors">
-                        <div className="font-mono text-2xl tracking-[0.3em] font-black text-white/95">
+                      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 group-hover:border-indigo-500/50 transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                        <div className="font-mono text-2xl tracking-[0.3em] font-black text-white/95 group-hover:text-indigo-300 transition-colors">
                           {userId ? `CF-${userId}` : "CF-000000"}
                         </div>
                       </div>
@@ -462,6 +462,75 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 </motion.div>
+
+              {/* My Notes Bento Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="md:col-span-8 glass-card p-8 md:p-10 rounded-[3rem] relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 p-8 opacity-5 text-indigo-600 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                  <NotebookPen size={120} />
+                </div>
+
+                <div className="relative z-10 h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                        <NotebookPen size={20} />
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-widest">Мои конспекты</h3>
+                    </div>
+                    <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                      Всего: {userNotes.length}
+                    </span>
+                  </div>
+
+                  {userNotes.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {userNotes.slice(0, 4).map((note, idx) => {
+                        const lessonKey = `${note.courseId}_${note.lessonId}`;
+                        const lesson = lessonsMap[lessonKey];
+                        const course = coursesMap[note.courseId];
+                        const colorClass = noteColors[idx % noteColors.length];
+
+                        return (
+                          <Link
+                            key={note.id}
+                            href={`/course/${note.courseId}/lesson/${note.lessonId}`}
+                            className={`p-5 rounded-3xl border transition-all hover:scale-[1.02] active:scale-[0.98] ${colorClass}`}
+                          >
+                            <div className="text-[8px] font-black text-zinc-500/60 uppercase tracking-widest mb-1 truncate">
+                              {course?.title || "Курс"}
+                            </div>
+                            <h4 className="text-[11px] font-black text-zinc-900 dark:text-zinc-100 mb-2 line-clamp-1">
+                              {lesson?.title || `Урок ${note.lessonId}`}
+                            </h4>
+                            <p className="text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 font-medium leading-relaxed">
+                              {note.content}
+                            </p>
+                          </Link>
+                        );
+                      })}
+                      {userNotes.length > 4 && (
+                        <div className="sm:col-span-2 text-center mt-2">
+                           <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline flex items-center gap-1 mx-auto">
+                             Смотреть все записи <ChevronRight size={12} />
+                           </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex-grow flex flex-col items-center justify-center py-10 text-center">
+                       <div className="w-16 h-16 rounded-full bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-center text-zinc-300 mb-4">
+                          <NotebookPen size={32} />
+                       </div>
+                       <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">У тебя пока нет конспектов</p>
+                       <p className="text-[10px] text-zinc-500 mt-2 max-w-[200px]">Начни изучать уроки и записывай важное!</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
                 {/* Learning Pulse Card */}
                 <motion.div
