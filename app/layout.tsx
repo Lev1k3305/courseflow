@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import ClientProviders from "@/components/ClientProviders";
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className={inter.className}>
 
         <ClientProviders>{children}</ClientProviders>
+        <SpeedInsights />
       </body>
     </html>
   );

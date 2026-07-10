@@ -10,17 +10,6 @@ import * as motion from "motion/react-client";
 import { vkBridgeManager, type VKUserInfo } from "@/lib/vkBridge";
 
 
-// Mock data for progress
-const weeklyStats = [
-  { day: "Пн", progress: 45 },
-  { day: "Вт", progress: 70 },
-  { day: "Ср", progress: 30 },
-  { day: "Чт", progress: 90 },
-  { day: "Пт", progress: 60 },
-  { day: "Сб", progress: 85 },
-  { day: "Вс", progress: 50 },
-];
-
 const noteColors = [
   'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
   'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50',
@@ -44,12 +33,21 @@ const skillIcons = [
   <Calendar key="design" size={14} />
 ];
 
+function getPlural(n: number, singular: string, few: string, many: string) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return singular;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState("Имя");
   const [lastName, setLastName] = useState("Пользователь");
   const [avatarUrl, setAvatarUrl] = useState("https://api.dicebear.com/7.x/avataaars/svg?seed=Felix");
   const [mounted, setMounted] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
+  const [notes, setNotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
   const [userNotes, setUserNotes] = useState<Note[]>([]);
@@ -64,9 +62,19 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setMounted(true);
-    setUserId(Math.floor(Math.random() * 900000) + 100000);
 
     const initializeProfile = async () => {
+      const auth = getAuthService();
+      if (auth.currentUser) {
+        // Generate stable numeric ID from Firebase UID
+        let hash = 0;
+        for (let i = 0; i < auth.currentUser.uid.length; i++) {
+          hash = (hash << 5) - hash + auth.currentUser.uid.charCodeAt(i);
+          hash |= 0;
+        }
+        setUserId(Math.abs(hash).toString().substring(0, 6));
+      }
+
       try {
         setIsLoading(true);
 
@@ -100,12 +108,41 @@ export default function ProfilePage() {
           }
         };
 
-        // Fetch progress
+        // Fetch progress and analytics
         const fetchProgress = async () => {
           try {
-            const count = await getAllCompletedLessons(courses);
+            const detailed = await getDetailedProgress(courses);
+            const count = detailed.length;
+            const userStreak = await getUserStreak(courses, detailed);
+
             setCompletedCount(count);
-            console.log("[Profile] Completed lessons count:", count);
+            setStreak(userStreak);
+
+            // Process weekly stats
+            const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() - (6 - i));
+              return {
+                date: new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(),
+                day: days[d.getDay()],
+                count: 0
+              };
+            });
+
+            detailed.forEach(p => {
+              const pDate = new Date(p.timestamp.getFullYear(), p.timestamp.getMonth(), p.timestamp.getDate()).getTime();
+              const foundDay = last7Days.find(d => d.date === pDate);
+              if (foundDay) foundDay.count++;
+            });
+
+            // Map to percentage (max 5 lessons a day for 100% in chart)
+            setWeeklyData(last7Days.map(d => ({
+              day: d.day,
+              progress: Math.min(100, d.count * 20)
+            })));
+
+            console.log("[Profile] Analytics loaded successfully");
           } catch (error) {
             console.error("[Profile] Failed to fetch progress:", error);
             setCompletedCount(0);
@@ -215,7 +252,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-center">
                         <div className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Streak</div>
-                        <div className="text-2xl font-black text-indigo-600">5</div>
+                        <div className="text-2xl font-black text-indigo-600">{streak}</div>
                       </div>
                       <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-center">
                         <div className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Rating</div>
@@ -242,16 +279,17 @@ export default function ProfilePage() {
                   <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
                     <motion.div
                       animate={{
-                        x: ["-100%", "200%"]
+                        x: ["-100%", "200%"],
+                        rotate: [0, 45, 0]
                       }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-0 w-[60%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-20"
                     />
                   </div>
 
                   <div className="flex items-center justify-between mb-10 relative z-10">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/20 shadow-xl group-hover:rotate-12 transition-transform">
                         <Sparkles size={20} className="text-indigo-400 animate-pulse" />
                       </div>
                       <div className="flex flex-col">
@@ -259,10 +297,9 @@ export default function ProfilePage() {
                         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Mastery Passport</span>
                       </div>
                     </div>
-                    <div className="w-14 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
-                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                       <div className="w-7 h-5 bg-indigo-500/30 rounded-md flex items-center justify-center border border-white/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
+                    <div className="w-14 h-9 rounded-xl bg-gradient-to-br from-white/20 to-white/5 border border-white/30 flex items-center justify-center shadow-inner overflow-hidden">
+                       <div className="w-7 h-5 bg-indigo-500/40 rounded-md flex items-center justify-center border border-white/20">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 shadow-[0_0_10px_#818cf8]" />
                        </div>
                     </div>
                   </div>
@@ -279,7 +316,7 @@ export default function ProfilePage() {
                     <div className="pt-6 flex items-center justify-between border-t border-white/10">
                        <div>
                           <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Auth Status</div>
-                          <div className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg border border-indigo-500/30">Verified Expert</div>
+                          <div className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/30 text-indigo-200 px-2 py-1 rounded-lg border border-indigo-500/30">Verified Expert</div>
                        </div>
                        <div className="text-right">
                           <div className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 opacity-60">Valid Thru</div>
@@ -297,23 +334,40 @@ export default function ProfilePage() {
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Достижения</h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {achievements.map((achievement, idx) => (
+                  {dynamicAchievements.map((achievement, idx) => {
+                    const isUnlocked =
+                      (achievement.id === 'note-taker' && notes.length >= 1) ||
+                      (achievement.id === 'course-pioneer' && completedCount >= 10) ||
+                      (achievement.id === 'streak-king' && streak >= 3);
+
+                    return (
                     <motion.div
                       key={achievement.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
                       whileHover={{ scale: 1.05, y: -5 }}
-                      className="glass-card p-6 rounded-[2rem] text-center group cursor-help relative overflow-hidden"
+                      className={`glass-card p-6 rounded-[2rem] text-center group cursor-help relative overflow-hidden transition-all duration-500 ${!isUnlocked ? 'opacity-40 grayscale' : ''}`}
                     >
                       <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-indigo-500 mx-auto mb-4 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm group-hover:shadow-indigo-500/20 group-hover:rotate-6">
+                      <div className={`w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-all shadow-sm group-hover:rotate-6 ${
+                        isUnlocked
+                          ? 'bg-zinc-100 dark:bg-zinc-800 text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white group-hover:shadow-indigo-500/20'
+                          : 'bg-zinc-100/50 dark:bg-zinc-800/50 text-zinc-400'
+                      }`}>
                         {achievement.icon}
                       </div>
                       <h4 className="text-[11px] font-black uppercase tracking-tight mb-1">{achievement.title}</h4>
                       <p className="text-[9px] text-zinc-400 font-bold leading-tight">{achievement.description}</p>
+                      {!isUnlocked && (
+                        <div className="absolute top-2 right-2">
+                           <div className="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+                              <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                           </div>
+                        </div>
+                      )}
                     </motion.div>
-                  ))}
+                  );})}
                 </div>
               </div>
 
@@ -491,9 +545,53 @@ export default function ProfilePage() {
                    </div>
                    <div>
                       <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Ударный режим</div>
-                      <div className="text-4xl font-black tracking-tighter">5 Дней</div>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mt-2">Ты в огне! 🔥</p>
+                      <div className="text-4xl font-black tracking-tighter">{streak} {getPlural(streak, 'День', 'Дня', 'Дней')}</div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mt-2">
+                        {streak > 0 ? "Ты в огне! 🔥" : "Начни учиться сегодня!"}
+                      </p>
                    </div>
+                </motion.div>
+
+                {/* My Notes Card */}
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="md:col-span-4 glass-card p-8 rounded-[3rem] flex flex-col overflow-hidden group relative min-h-[250px]"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                        <NotebookPen size={20} />
+                      </div>
+                      <h3 className="text-xs font-black uppercase tracking-widest">Мои конспекты</h3>
+                    </div>
+                    <span className="text-xl font-black text-amber-500">{notes.length}</span>
+                  </div>
+
+                  <div className="space-y-3 overflow-y-auto max-h-[150px] pr-2 custom-scrollbar">
+                    {notes.length > 0 ? (
+                      notes.slice(0, 3).map((note, idx) => (
+                        <div key={idx} className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-left">
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mb-1">
+                            {lessonsMap[`${note.courseId}_${note.lessonId}`]?.title || "Урок"}
+                          </p>
+                          <p className="text-[11px] font-medium text-zinc-600 dark:text-zinc-300 line-clamp-2 italic">
+                            «{note.content}»
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 text-zinc-400">
+                        <NotebookPen size={32} className="opacity-20 mb-2" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Нет заметок</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {notes.length > 3 && (
+                    <div className="mt-auto pt-2 text-center">
+                       <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">и еще {notes.length - 3}...</span>
+                    </div>
+                  )}
                 </motion.div>
 
                 <div className="md:col-span-4 glass-card p-8 rounded-[3rem] flex flex-col items-center justify-center text-center gap-6 group relative overflow-hidden">
@@ -516,7 +614,7 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="glass-card p-8 md:p-10 rounded-[3rem] overflow-hidden relative md:col-span-12"
+                className="glass-card p-8 md:p-10 rounded-[3rem] overflow-hidden relative md:col-span-8"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                   <BarChart3 size={120} />
@@ -529,7 +627,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="h-64 relative z-10">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={weeklyStats}>
+                    <BarChart data={weeklyData}>
                       <defs>
                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#6366f1" />
@@ -546,6 +644,50 @@ export default function ProfilePage() {
                       <Bar dataKey="progress" fill="url(#barGradient)" radius={[6, 6, 6, 6]} barSize={24} />
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+              </motion.div>
+
+              {/* Learning Progress Summary Card */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="md:col-span-4 glass-card p-8 rounded-[3rem] bg-gradient-to-br from-indigo-600/10 to-violet-600/10 border-indigo-500/20 flex flex-col justify-between"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <GraduationCap size={20} />
+                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-widest">Прогресс по темам</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {courseCategories.slice(0, 4).map((cat, i) => {
+                     const catLessons = courses.filter(c => c.category === cat).reduce((acc, c) => acc + c.lessons.length, 0);
+                     // Mock completion based on total completed
+                     const catCompleted = Math.min(catLessons, Math.floor(completedCount * (0.2 + i * 0.1)));
+
+                     return (
+                       <div key={cat} className="space-y-1">
+                         <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+                            <span className="text-zinc-500">{cat}</span>
+                            <span>{catCompleted}/{catLessons}</span>
+                         </div>
+                         <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full"
+                              style={{ width: `${(catCompleted / catLessons) * 100}%` }}
+                            />
+                         </div>
+                       </div>
+                     );
+                  })}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-indigo-500/10">
+                   <p className="text-[11px] font-bold text-zinc-500 leading-relaxed italic">
+                     «Инвестиции в знания приносят самые высокие дивиденды.»
+                   </p>
                 </div>
               </motion.div>
             </div>

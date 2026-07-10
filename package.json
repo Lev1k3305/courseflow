@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.0",
+    "@vercel/speed-insights": "^2.0.0",
     "@vkontakte/vk-bridge": "^3.0.2",
     "d3-array": "^3.2.4",
     "d3-scale": "^4.0.2",
