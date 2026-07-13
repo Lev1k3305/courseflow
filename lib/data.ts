@@ -18,6 +18,7 @@ export interface Lesson {
   quiz?: QuizItem[];
   keyTakeaways?: string[];
   expertNote?: string;
+ commonMistake?: string;
   task: string;
 }
 
